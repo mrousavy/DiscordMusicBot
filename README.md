@@ -28,3 +28,5 @@ A Discord Bot for playing YouTube and SoundCloud music.
 `!come`                                 ...     Let Bot join your Channel
 
 `!update`                               ...     Updates the Permitted Clients List from clients.txt
+
+`!skip`                                 ...     Skips the current Song
