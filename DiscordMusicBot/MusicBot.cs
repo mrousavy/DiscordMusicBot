@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Audio;
@@ -14,6 +15,7 @@ namespace DiscordMusicBot {
         private Queue<string> _queue;
         private IAudioClient _audio;
         private readonly string _imABot = " *I'm a Bot, beep boop blop*";
+        private bool _pause = false;
 
         public MusicBot() { Initialize(); }
 
@@ -65,18 +67,18 @@ namespace DiscordMusicBot {
                 _audio = await service.Join(channel);
 
                 Console.WriteLine($"Joined Channel \"{channel.Name}\"");
-
-                Play(_audio);
             } catch (Exception ex) {
                 Console.WriteLine("Could not join Voice Channel! (" + ex.Message + ")");
             }
         }
 
         private async void ChannelSwitched(object sender, ChannelUpdatedEventArgs e) {
+            Pause();
             Console.WriteLine($"I switched channel from {e.Before} to {e.After}!");
             _channel = e.After;
             await _channel.SendMessage("Waddup" + _imABot);
-            Play(await e.After.JoinAudio());
+            _audio = await e.After.JoinAudio();
+            Play();
         }
 
         private static void ServerSwitched(object sender, ServerUpdatedEventArgs e) {
@@ -185,7 +187,9 @@ namespace DiscordMusicBot {
                     await e.User.SendMessage("I got confused, I don't know that command!\n\r" + GetHelp());
                 }
             } else if (msg.StartsWith("!pause")) {
+                Pause();
             } else if (msg.StartsWith("!play")) {
+                Play();
             } else if (msg.StartsWith("!clear")) {
                 _queue.Clear();
                 await e.User.SendMessage("Playlist cleared!" + _imABot);
@@ -200,7 +204,26 @@ namespace DiscordMusicBot {
             #endregion
         }
 
-        public void Play(IAudioClient audio) { audio.Send(null, 0, 0); }
+        //Start/Resume the playing media
+        public void Play() {
+            _pause = false;
+
+            new Thread(() => {
+                try {
+                    while (!_pause) {
+                        _audio.Send(null, 0, 0);
+                        _audio.Wait();
+                    }
+                } catch {
+                    //audio can't be played
+                }
+            }).Start();
+        }
+
+        public void Pause() {
+            _audio.Clear();
+            _pause = true;
+        }
 
         //Add Song to queue
         public void AddToQueue(string url) { _queue.Enqueue(url); }
