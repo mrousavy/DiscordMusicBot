@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using MediaToolkit;
+using MediaToolkit.Model;
+using System;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using MediaToolkit;
-using MediaToolkit.Model;
 using VideoLibrary;
 
 namespace DiscordMusicBot {
@@ -13,7 +11,7 @@ namespace DiscordMusicBot {
         private static readonly string DownloadPath = Path.GetTempPath();
 
 
-        public static async Task<string> Download(string url) {
+        public static async Task<Tuple<string, string>> Download(string url) {
             if (url.ToLower().Contains("youtube.com")) {
                 return await DownloadFromYouTube(url);
             } else if (url.ToLower().Contains("soundcloud.com")) {
@@ -24,12 +22,12 @@ namespace DiscordMusicBot {
         }
 
         //Download the Video from YouTube url and extract it
-        private static async Task<string> DownloadFromYouTube(string url) {
-            Console.WriteLine("Downloading Audio from YouTube...");
-
+        private static async Task<Tuple<string, string>> DownloadFromYouTube(string url) {
             //Download Video
             YouTube youtube = YouTube.Default;
-            Video video = (await youtube.GetAllVideosAsync(url)).OrderByDescending(vid => vid.AudioBitrate).First();
+            YouTubeVideo video = (await youtube.GetAllVideosAsync(url)).OrderByDescending(vid => vid.AudioBitrate).First();
+
+            Console.WriteLine($"Downloading \"{video.Title}\" from YouTube...");
 
             string file;
             int count = 0;
@@ -40,26 +38,28 @@ namespace DiscordMusicBot {
             File.WriteAllBytes(file, video.GetBytes());
 
             //Convert vid to mp3
-            MediaFile inputFile = new MediaFile {Filename = file};
-            MediaFile outputFile = new MediaFile {Filename = $"{file}.mp3"};
+            MediaFile inputFile = new MediaFile { Filename = file };
+            MediaFile outputFile = new MediaFile { Filename = $"{file}.mp3" };
 
             using (Engine engine = new Engine()) {
                 engine.GetMetadata(inputFile);
                 engine.Convert(inputFile, outputFile);
             }
 
+            Console.WriteLine("Done!");
+
             File.Delete(file);
 
-            return $"{file}.mp3";
+            return new Tuple<string, string>($"{file}.mp3", video.Title);
         }
 
         //Download the Video from Soundcloud url and extract it
-        private static async Task<string> DownloadFromSoundcloud(string url) {
+        private static async Task<Tuple<string, string>> DownloadFromSoundcloud(string url) {
             Console.WriteLine("Downloading Audio from Soundcloud...");
 
             //TODO
 
-            return $".mp3";
+            return new Tuple<string, string>("", "");
         }
     }
 }

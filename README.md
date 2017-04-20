@@ -1,7 +1,9 @@
-# DiscordMusicBot
+# <img src="https://raw.githubusercontent.com/mrousavy/ImgurSniper/master/ImgurSniper.UI/Resources/Logo.png" width="42"> DiscordMusicBot
 A Discord Bot for playing YouTube and SoundCloud music.
 
 [Click here to add this MusicBot to your Server](https://discordapp.com/oauth2/authorize?client_id=304226292545486849&scope=bot)
+
+[Click here to download Music Bot](https://github.com/mrousavy/DiscordMusicBot/raw/master/Download/DiscordMusicBot.zip)
 
 ![neat GIF](https://laughingsquid.com/wp-content/uploads/2015/06/floating-record-1.gif)
 
