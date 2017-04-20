@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Audio;
 
@@ -31,13 +32,14 @@ namespace DiscordMusicBot {
             await _client.Connect(Information.Token, TokenType.Bot);
 
             //Allow Audio
-            AudioService service = new AudioService(new AudioServiceConfigBuilder {Mode = AudioMode.Outgoing});
+            AudioService service = new AudioService();
             _client.AddService(service);
 
             //"Playing Nothing :/"
             _client.SetGame("Nothing :/");
         }
 
+        //Event on Servers available
         private async void ServerAvailable(object sender, ServerEventArgs e) {
             //Print added Servers
             Console.WriteLine("\nAdded Servers:");
@@ -47,10 +49,18 @@ namespace DiscordMusicBot {
 
             //Join First Audio Channel
             try {
-                Channel voiceChannel = _client.FindServers(Information.ServerName)
-                    .FirstOrDefault()
-                    ?.VoiceChannels.FirstOrDefault();
-                await _client.GetService<AudioService>().Join(voiceChannel);
+                Server server = _client.FindServers(Information.ServerName)
+                    .FirstOrDefault();
+                if (server == null)
+                    throw new Exception("No Server found!");
+
+                List<Channel> channels = new List<Channel>(server.VoiceChannels);
+                Channel channel = channels[4];
+
+                AudioService service = _client.GetService<AudioService>();
+                await service.Join(channel);
+
+                Console.WriteLine($"Joined Channel \"{channel.Name}\"");
             } catch (Exception ex) {
                 Console.WriteLine("Could not join Voice Channel! (" + ex.Message + ")");
             }
@@ -124,7 +134,7 @@ namespace DiscordMusicBot {
                         await e.User.SendMessage("Sorry, but that was no valid URL!" + _imABot);
                     }
                 } else {
-                    await e.User.SendMessage("Invalid Command!\n\r" + GetHelp());
+                    await e.User.SendMessage("I got confused, I don't know that command!\n\r" + GetHelp());
                 }
             } else if (msg.StartsWith("!addPlaylist")) {
                 //TODO
