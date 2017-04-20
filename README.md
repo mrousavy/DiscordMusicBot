@@ -1,6 +1,8 @@
 # DiscordMusicBot
 A Discord Bot for playing YouTube and SoundCloud music.
 
+[Click here to add this MusicBot to your Server](https://discordapp.com/oauth2/authorize?client_id=MzA0MjI2MjkyNTQ1NDg2ODQ5.C9oedQ.jeFjhhqLG6U9rVnl03Do72nrBoc&scope=bot)
+
 ![neat GIF](https://laughingsquid.com/wp-content/uploads/2015/06/floating-record-1.gif)
 
 # Commands
