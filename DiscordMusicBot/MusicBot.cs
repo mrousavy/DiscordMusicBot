@@ -6,16 +6,24 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Audio;
+using MediaToolkit;
+using MediaToolkit.Model;
+using VideoLibrary;
 
 namespace DiscordMusicBot {
     internal class MusicBot : IDisposable {
         private DiscordClient _client;
         private Channel _channel;
         private List<string> _permittedUsers;
+
+        //Song Queue, Path to files
         private Queue<string> _queue;
+
         private IAudioClient _audio;
-        private readonly string _imABot = " *I'm a Bot, beep boop blop*";
         private bool _pause;
+
+        private const int ResolutionToDownload = 360;
+        private const string ImABot = " *I'm a Bot, beep boop blop*";
 
         //AUDIO FORMAT: 16-bit 48000Hz PCM
 
@@ -42,6 +50,8 @@ namespace DiscordMusicBot {
 
             //"Playing Nothing :/"
             _client.SetGame("Nothing :/");
+
+            Console.Title = $"Music Bot ({_client.State})";
         }
 
         //Event on Servers available
@@ -78,7 +88,7 @@ namespace DiscordMusicBot {
             Pause();
             Console.WriteLine($"I switched channel from {e.Before} to {e.After}!");
             _channel = e.After;
-            await _channel.SendMessage("Waddup" + _imABot);
+            await _channel.SendMessage("Waddup" + ImABot);
             _audio = await e.After.JoinAudio();
             Play();
         }
@@ -128,7 +138,7 @@ namespace DiscordMusicBot {
             }
             if (msg.StartsWith("!queue")) {
                 if (_queue.Count == 0) {
-                    await e.User.SendMessage("Sorry, Song Queue is empty!" + _imABot);
+                    await e.User.SendMessage("Sorry, Song Queue is empty!" + ImABot);
                 } else {
                     string queue = _queue.Aggregate("Song Queue:\n", (current, url) => current + ("    " + url + "\n"));
                     await e.User.SendMessage(queue);
@@ -141,7 +151,7 @@ namespace DiscordMusicBot {
             #region Only with Roles
 
             if (!_permittedUsers.Contains(e.User.ToString())) {
-                await e.User.SendMessage("Sorry, but you're not allowed to do that!" + _imABot);
+                await e.User.SendMessage("Sorry, but you're not allowed to do that!" + ImABot);
                 return;
             }
 
@@ -159,10 +169,12 @@ namespace DiscordMusicBot {
 
                     //Answer
                     if (result) {
-                        _queue.Enqueue(parameter);
-                        await e.User.SendMessage("Song added, Thanks!" + _imABot);
+                        string path = await DownloadHelper.DownloadFromYouTube(parameter);
+                        _queue.Enqueue(path);
+                        Play();
+                        await e.User.SendMessage("Song added, Thanks!" + ImABot);
                     } else {
-                        await e.User.SendMessage("Sorry, but that was no valid URL!" + _imABot);
+                        await e.User.SendMessage("Sorry, but that was no valid URL!" + ImABot);
                     }
                 } else {
                     await e.User.SendMessage("I got confused, I don't know that command!\n\r" + GetHelp());
@@ -194,7 +206,7 @@ namespace DiscordMusicBot {
                 Play();
             } else if (msg.StartsWith("!clear")) {
                 _queue.Clear();
-                await e.User.SendMessage("Playlist cleared!" + _imABot);
+                await e.User.SendMessage("Playlist cleared!" + ImABot);
             } else if (msg.StartsWith("!come")) {
                 await e.User.SendMessage("Sorry, I can't do that yet! :(");
             } else if (msg.StartsWith("!update")) {
@@ -212,7 +224,8 @@ namespace DiscordMusicBot {
             new Thread(() => {
                 try {
                     while (!_pause) {
-                        _audio.Send(null, 0, 0);
+                        byte[] bytes = File.ReadAllBytes(_queue.Dequeue());
+                        _audio.Send(bytes, 0, bytes.Length);
                         _audio.Wait();
                     }
                 } catch {
