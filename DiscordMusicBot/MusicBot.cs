@@ -44,8 +44,9 @@ namespace DiscordMusicBot {
         private async void ServerAvailable(object sender, ServerEventArgs e) {
             //Print added Servers
             Console.WriteLine("\nAdded Servers:");
+            Console.Write("    ");
             foreach (Server server in _client.Servers)
-                Console.Write("    " + server.Name + ",");
+                Console.Write(server.Name + ", ");
             Console.WriteLine("");
 
             //Join First Audio Channel
@@ -88,6 +89,13 @@ namespace DiscordMusicBot {
                 File.Create("users.txt").Dispose();
 
             _permittedUsers = new List<string>(File.ReadAllLines("users.txt"));
+
+            Console.WriteLine("\nPermitted Users:");
+            Console.Write("    ");
+            foreach (string user in _permittedUsers) {
+                Console.Write(user + ", ");
+            }
+            Console.WriteLine("");
         }
 
         //Joined Console Write
@@ -127,6 +135,11 @@ namespace DiscordMusicBot {
             #endregion
 
             #region Only with Roles
+
+            if (!_permittedUsers.Contains(e.User.ToString())) {
+                await e.User.SendMessage("Sorry, but you're not allowed to do that!" + _imABot);
+                return;
+            }
 
             string[] split = msg.Split(' ');
             string command = split[0];
@@ -179,6 +192,9 @@ namespace DiscordMusicBot {
             } else if (msg.StartsWith("!setTimeout")) {
             } else if (msg.StartsWith("!come")) {
                 await e.User.SendMessage("Sorry, I can't do that yet! :(");
+            } else if (msg.StartsWith("!update")) {
+                ReadConfig();
+                await e.User.SendMessage("Updated Permitted Users List!");
             }
 
             #endregion
@@ -200,7 +216,8 @@ namespace DiscordMusicBot {
                 "    !clear...Clear queue and current Song\n" +
                 "    !setTimeout [timeoutInMilliseconds]...Timeout between being able to request songs\n" +
                 "    !help...Prints available Commands and usage\n" +
-                "    !come...Let Bot join your Channel";
+                "    !come...Let Bot join your Channel\n" +
+                "    !update...Updates the Permitted Clients List from clients.txt";
         }
 
         public void Dispose() {
