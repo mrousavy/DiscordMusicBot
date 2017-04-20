@@ -70,9 +70,9 @@ namespace DiscordMusicBot {
         }
 
         //Joined Console Write
-        private void Joined(object sender, ServerEventArgs e) { Console.WriteLine("Joined Server!"); }
+        private static void Joined(object sender, ServerEventArgs e) { Console.WriteLine("Joined Server!"); }
 
-        private void Ready(object sender, EventArgs e) { Console.WriteLine("Ready!"); }
+        private static void Ready(object sender, EventArgs e) { Console.WriteLine("Ready!"); }
 
         //On Private Message Received
         private async void MessageReceived(object sender, MessageEventArgs e) {
