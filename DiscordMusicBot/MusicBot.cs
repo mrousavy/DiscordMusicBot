@@ -31,9 +31,8 @@ namespace DiscordMusicBot {
             _client.ServerAvailable += ServerAvailable;
             await _client.Connect(Information.Token, TokenType.Bot);
 
-            //Allow Audio
-            AudioService service = new AudioService();
-            _client.AddService(service);
+            //Setup Audio
+            _client.UsingAudio(x => { x.Mode = AudioMode.Outgoing; });
 
             //"Playing Nothing :/"
             _client.SetGame("Nothing :/");
