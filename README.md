@@ -17,8 +17,8 @@ A Discord Bot for playing YouTube and SoundCloud music.
 
 `!clear`                                ...     Clear queue and current Song
 
-`!setRole [minRole]`                    ...     Minimum Client Role to request Songs
-
 `!setTimeout [timeoutInMilliseconds]`   ...     Timeout between being able to request songs
 
 `!help`                                 ...     Prints available Commands and usage
+
+`!come`                                 ...     Let Bot join your Channel

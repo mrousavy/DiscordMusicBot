@@ -1,15 +1,14 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Discord;
-using Discord.Net.WebSockets;
+using Discord.Audio;
 
 namespace DiscordMusicBot {
     internal class MusicBot : IDisposable {
         private DiscordClient _client;
+        private Channel _channel;
         private List<string> _permittedUsers;
         private Queue<string> _queue;
         private readonly string _imABot = " *I'm a Bot, beep boop blop*";
@@ -18,13 +17,48 @@ namespace DiscordMusicBot {
 
         //init vars
         public async void Initialize() {
+            //Init Config and Queue
             ReadConfig();
             _queue = new Queue<string>();
+
+            //Init & Connect Client
             _client = new DiscordClient();
             _client.JoinedServer += Joined;
             _client.Ready += Ready;
             _client.MessageReceived += MessageReceived;
+            _client.ChannelUpdated += ChannelSwitched;
+            _client.ServerAvailable += ServerAvailable;
             await _client.Connect(Information.Token, TokenType.Bot);
+
+            //Allow Audio
+            AudioService service = new AudioService(new AudioServiceConfigBuilder {Mode = AudioMode.Outgoing});
+            _client.AddService(service);
+
+            //"Playing Nothing :/"
+            _client.SetGame("Nothing :/");
+        }
+
+        private async void ServerAvailable(object sender, ServerEventArgs e) {
+            //Print added Servers
+            Console.WriteLine("\nAdded Servers:");
+            foreach (Server server in _client.Servers)
+                Console.Write("    " + server.Name + ",");
+            Console.WriteLine("");
+
+            //Join First Audio Channel
+            try {
+                Channel voiceChannel = _client.FindServers(Information.ServerName)
+                    .FirstOrDefault()
+                    ?.VoiceChannels.FirstOrDefault();
+                await _client.GetService<AudioService>().Join(voiceChannel);
+            } catch (Exception ex) {
+                Console.WriteLine("Could not join Voice Channel! (" + ex.Message + ")");
+            }
+        }
+
+        private void ChannelSwitched(object sender, ChannelUpdatedEventArgs e) {
+            _channel = e.After;
+            _channel.SendMessage("Waddup" + _imABot);
         }
 
         //Read Config from File
@@ -92,9 +126,7 @@ namespace DiscordMusicBot {
                 } else {
                     await e.User.SendMessage("Invalid Command!\n\r" + GetHelp());
                 }
-                return;
-            }
-            if (msg.StartsWith("!addPlaylist")) {
+            } else if (msg.StartsWith("!addPlaylist")) {
                 //TODO
                 if (parameter != null) {
                     await e.User.SendMessage("Sorry, I can't add Playlists as for now! :(");
@@ -115,27 +147,21 @@ namespace DiscordMusicBot {
                 } else {
                     await e.User.SendMessage("I got confused, I don't know that command!\n\r" + GetHelp());
                 }
-                return;
-            }
-            if (msg.StartsWith("!pause")) {
-                return;
-            }
-            if (msg.StartsWith("!play")) {
-                return;
-            }
-            if (msg.StartsWith("!clear")) {
+            } else if (msg.StartsWith("!pause")) {
+            } else if (msg.StartsWith("!play")) {
+            } else if (msg.StartsWith("!clear")) {
                 _queue.Clear();
                 await e.User.SendMessage("Playlist cleared!" + _imABot);
-                return;
-            }
-            if (msg.StartsWith("!setTimeout")) {
-                return;
+            } else if (msg.StartsWith("!setTimeout")) {
+            } else if (msg.StartsWith("!come")) {
+                IAudioClient audio = await e.User.VoiceChannel.JoinAudio();
+                Play(audio);
             }
 
             #endregion
         }
 
-        public async void Play() { }
+        public void Play(IAudioClient audio) { audio.Send(null, 0, 0); }
 
         //Add Song to queue
         public void AddToQueue(string url) { }
@@ -150,7 +176,8 @@ namespace DiscordMusicBot {
                 "    !queue...Prints all queued Songs & their User\n" +
                 "    !clear...Clear queue and current Song\n" +
                 "    !setTimeout [timeoutInMilliseconds]...Timeout between being able to request songs\n" +
-                "    !help...Prints available Commands and usage";
+                "    !help...Prints available Commands and usage\n" +
+                "    !come...Let Bot join your Channel";
         }
 
         public void Dispose() {
