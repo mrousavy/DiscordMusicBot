@@ -12,8 +12,19 @@ namespace DiscordMusicBot {
     internal class DownloadHelper {
         private static readonly string DownloadPath = Path.GetTempPath();
 
+
+        public static async Task<string> Download(string url) {
+            if (url.ToLower().Contains("youtube.com")) {
+                return await DownloadFromYouTube(url);
+            } else if (url.ToLower().Contains("soundcloud.com")) {
+                return await DownloadFromSoundcloud(url);
+            } else {
+                throw new Exception("Video URL not supported!");
+            }
+        }
+
         //Download the Video from YouTube url and extract it
-        public static async Task<string> DownloadFromYouTube(string url) {
+        private static async Task<string> DownloadFromYouTube(string url) {
             Console.WriteLine("Downloading Audio from YouTube...");
 
             //Download Video
@@ -40,6 +51,15 @@ namespace DiscordMusicBot {
             File.Delete(file);
 
             return $"{file}.mp3";
+        }
+
+        //Download the Video from Soundcloud url and extract it
+        private static async Task<string> DownloadFromSoundcloud(string url) {
+            Console.WriteLine("Downloading Audio from Soundcloud...");
+
+            //TODO
+
+            return $".mp3";
         }
     }
 }

@@ -8,6 +8,7 @@ using Discord;
 using Discord.Audio;
 using MediaToolkit;
 using MediaToolkit.Model;
+using NAudio.Wave;
 using VideoLibrary;
 
 namespace DiscordMusicBot {
@@ -71,14 +72,14 @@ namespace DiscordMusicBot {
                     throw new Exception("No Server found!");
 
                 List<Channel> channels = new List<Channel>(server.VoiceChannels);
-                Channel channel = channels.FirstOrDefault();
+                Channel channel = channels[4];
                 if (channel == null)
                     throw new Exception("No Voice Channel found!");
 
                 AudioService service = _client.GetService<AudioService>();
                 _audio = await service.Join(channel);
 
-                Console.WriteLine($"Joined Channel \"{channel.Name}\"");
+                Console.WriteLine($"Joined Channel \"{_audio.Channel.Name}\"");
             } catch (Exception ex) {
                 Console.WriteLine("Could not join Voice Channel! (" + ex.Message + ")");
             }
@@ -169,10 +170,14 @@ namespace DiscordMusicBot {
 
                     //Answer
                     if (result) {
-                        string path = await DownloadHelper.DownloadFromYouTube(parameter);
-                        _queue.Enqueue(path);
-                        Play();
-                        await e.User.SendMessage("Song added, Thanks!" + ImABot);
+                        try {
+                            string path = await DownloadHelper.Download(parameter);
+                            _queue.Enqueue(path);
+                            Play();
+                            await e.User.SendMessage("Song added, Thanks!" + ImABot);
+                        } catch {
+                            await e.User.SendMessage("Unfortunately I can't play that Song!" + ImABot);
+                        }
                     } else {
                         await e.User.SendMessage("Sorry, but that was no valid URL!" + ImABot);
                     }
@@ -205,6 +210,7 @@ namespace DiscordMusicBot {
             } else if (msg.StartsWith("!play")) {
                 Play();
             } else if (msg.StartsWith("!clear")) {
+                Pause();
                 _queue.Clear();
                 await e.User.SendMessage("Playlist cleared!" + ImABot);
             } else if (msg.StartsWith("!come")) {
@@ -223,10 +229,38 @@ namespace DiscordMusicBot {
 
             new Thread(() => {
                 try {
-                    while (!_pause) {
-                        byte[] bytes = File.ReadAllBytes(_queue.Dequeue());
-                        _audio.Send(bytes, 0, bytes.Length);
-                        _audio.Wait();
+                    while (!_pause && _queue.Count != 0) {
+                        var channelCount =
+                            _client.GetService<AudioService>()
+                                .Config
+                                .Channels; // Get the number of AudioChannels our AudioService has been configured to use.
+                        WaveFormat OutFormat =
+                            new WaveFormat(48000, 16,
+                                channelCount); // Create a new Output Format, using the spec that Discord will accept, and with the number of channels that our client supports.
+                        using (var MP3Reader = new Mp3FileReader(_queue.Dequeue())
+                        ) // Create a new Disposable MP3FileReader, to read audio from the filePath parameter
+                        using (var resampler = new MediaFoundationResampler(MP3Reader, OutFormat)
+                        ) // Create a Disposable Resampler, which will convert the read MP3 data to PCM, using our Output Format
+                        {
+                            resampler.ResamplerQuality =
+                                60; // Set the quality of the resampler to 60, the highest quality
+                            int blockSize =
+                                OutFormat.AverageBytesPerSecond / 50; // Establish the size of our AudioBuffer
+                            byte[] buffer = new byte[blockSize];
+                            int byteCount;
+
+                            while ((byteCount = resampler.Read(buffer, 0, blockSize)) >
+                                   0) // Read audio into our buffer, and keep a loop open while data is present
+                            {
+                                if (byteCount < blockSize) {
+                                    // Incomplete Frame
+                                    for (int i = byteCount; i < blockSize; i++)
+                                        buffer[i] = 0;
+                                }
+                                _audio.Send(buffer, 0, blockSize); // Send the buffer to Discord
+                                _audio.Wait();
+                            }
+                        }
                     }
                 } catch {
                     //audio can't be played
