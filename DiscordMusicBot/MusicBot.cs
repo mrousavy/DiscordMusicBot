@@ -12,6 +12,7 @@ namespace DiscordMusicBot {
         private Channel _channel;
         private List<string> _permittedUsers;
         private Queue<string> _queue;
+        private IAudioClient _audio;
         private readonly string _imABot = " *I'm a Bot, beep boop blop*";
 
         public MusicBot() { Initialize(); }
@@ -28,6 +29,7 @@ namespace DiscordMusicBot {
             _client.Ready += Ready;
             _client.MessageReceived += MessageReceived;
             _client.ChannelUpdated += ChannelSwitched;
+            _client.ServerUpdated += ServerSwitched;
             _client.ServerAvailable += ServerAvailable;
             await _client.Connect(Information.Token, TokenType.Bot);
 
@@ -54,20 +56,30 @@ namespace DiscordMusicBot {
                     throw new Exception("No Server found!");
 
                 List<Channel> channels = new List<Channel>(server.VoiceChannels);
-                Channel channel = channels[4];
+                Channel channel = channels.FirstOrDefault();
+                if (channel == null)
+                    throw new Exception("No Voice Channel found!");
 
                 AudioService service = _client.GetService<AudioService>();
-                await service.Join(channel);
+                _audio = await service.Join(channel);
 
                 Console.WriteLine($"Joined Channel \"{channel.Name}\"");
+
+                Play(_audio);
             } catch (Exception ex) {
                 Console.WriteLine("Could not join Voice Channel! (" + ex.Message + ")");
             }
         }
 
-        private void ChannelSwitched(object sender, ChannelUpdatedEventArgs e) {
+        private async void ChannelSwitched(object sender, ChannelUpdatedEventArgs e) {
+            Console.WriteLine($"I switched channel from {e.Before} to {e.After}!");
             _channel = e.After;
-            _channel.SendMessage("Waddup" + _imABot);
+            await _channel.SendMessage("Waddup" + _imABot);
+            Play(await e.After.JoinAudio());
+        }
+
+        private static void ServerSwitched(object sender, ServerUpdatedEventArgs e) {
+            Console.WriteLine($"I switched server from {e.Before} to {e.After}!");
         }
 
         //Read Config from File
@@ -85,6 +97,9 @@ namespace DiscordMusicBot {
 
         //On Private Message Received
         private async void MessageReceived(object sender, MessageEventArgs e) {
+            if (e.User.Name == _client.CurrentUser.Name)
+                return;
+
             Console.WriteLine($"User \"{e.User}\" wrote: \"{e.Message.Text}\"");
 
             string msg = e.Message.Text;
@@ -163,8 +178,7 @@ namespace DiscordMusicBot {
                 await e.User.SendMessage("Playlist cleared!" + _imABot);
             } else if (msg.StartsWith("!setTimeout")) {
             } else if (msg.StartsWith("!come")) {
-                IAudioClient audio = await e.User.VoiceChannel.JoinAudio();
-                Play(audio);
+                await e.User.SendMessage("Sorry, I can't do that yet! :(");
             }
 
             #endregion
@@ -173,7 +187,7 @@ namespace DiscordMusicBot {
         public void Play(IAudioClient audio) { audio.Send(null, 0, 0); }
 
         //Add Song to queue
-        public void AddToQueue(string url) { }
+        public void AddToQueue(string url) { _queue.Enqueue(url); }
 
         public string GetHelp() {
             return
