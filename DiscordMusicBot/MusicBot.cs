@@ -15,7 +15,9 @@ namespace DiscordMusicBot {
         private Queue<string> _queue;
         private IAudioClient _audio;
         private readonly string _imABot = " *I'm a Bot, beep boop blop*";
-        private bool _pause = false;
+        private bool _pause;
+
+        //AUDIO FORMAT: 16-bit 48000Hz PCM
 
         public MusicBot() { Initialize(); }
 
@@ -193,7 +195,6 @@ namespace DiscordMusicBot {
             } else if (msg.StartsWith("!clear")) {
                 _queue.Clear();
                 await e.User.SendMessage("Playlist cleared!" + _imABot);
-            } else if (msg.StartsWith("!setTimeout")) {
             } else if (msg.StartsWith("!come")) {
                 await e.User.SendMessage("Sorry, I can't do that yet! :(");
             } else if (msg.StartsWith("!update")) {
