@@ -1,11 +1,9 @@
 ﻿using System;
 
-namespace DiscordMusicBot
-{
-    internal class Program
-    {
-        private static void Main(string[] args)
-        {
+namespace DiscordMusicBot {
+    internal class Program {
+        private static void Main(string[] args) {
+            new MusicBot();
             Console.WriteLine("Initialized");
         }
     }

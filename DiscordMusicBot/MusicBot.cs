@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
+using Discord.Net.WebSockets;
 
 namespace DiscordMusicBot {
     internal class MusicBot {
         public MusicBot() { }
 
+        public async void Listen() { }
 
         public void Help() {
             Console.WriteLine(
@@ -18,6 +19,13 @@ namespace DiscordMusicBot {
                 "!setRole[minRole]...Minimum Client Role to request Songs\n" +
                 "!setTimeout[timeoutInMilliseconds]...Timeout between being able to request songs\n" +
                 "!help...Prints available Commands and usage");
+        }
+
+
+        private async Task MessageReceived(SocketMessage message) {
+            if (message.Content == "!ping") {
+                await message.Channel.SendMessageAsync("Pong!");
+            }
         }
     }
 }
