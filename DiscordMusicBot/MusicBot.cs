@@ -12,6 +12,7 @@ namespace DiscordMusicBot {
         private DiscordClient _client;
         private List<string> _permittedUsers;
         private Queue<string> _queue;
+        private readonly string _imABot = " *I'm a Bot, beep boop blop*";
 
         public MusicBot() { Initialize(); }
 
@@ -56,8 +57,12 @@ namespace DiscordMusicBot {
                 return;
             }
             if (msg.StartsWith("!queue")) {
-                string queue = _queue.Aggregate("Song Queue:\n\r", (current, url) => current + ("    " + url + "\n\r"));
-                await e.User.SendMessage(queue);
+                if (_queue.Count == 0) {
+                    await e.User.SendMessage("Sorry, Song Queue is empty!" + _imABot);
+                } else {
+                    string queue = _queue.Aggregate("Song Queue:\n", (current, url) => current + ("    " + url + "\n"));
+                    await e.User.SendMessage(queue);
+                }
                 return;
             }
 
@@ -73,8 +78,17 @@ namespace DiscordMusicBot {
 
             if (msg.StartsWith("!add")) {
                 if (parameter != null) {
-                    _queue.Enqueue(parameter);
-                    await e.User.SendMessage("Song added, Thanks! I'm a Bot, beep boop blop");
+                    //Test for valid URL
+                    bool result = Uri.TryCreate(parameter, UriKind.Absolute, out Uri uriResult)
+                                  && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+
+                    //Answer
+                    if (result) {
+                        _queue.Enqueue(parameter);
+                        await e.User.SendMessage("Song added, Thanks!" + _imABot);
+                    } else {
+                        await e.User.SendMessage("Sorry, but that was no valid URL!" + _imABot);
+                    }
                 } else {
                     await e.User.SendMessage("Invalid Command!\n\r" + GetHelp());
                 }
@@ -83,10 +97,23 @@ namespace DiscordMusicBot {
             if (msg.StartsWith("!addPlaylist")) {
                 //TODO
                 if (parameter != null) {
-                    _queue.Enqueue(parameter);
-                    await e.User.SendMessage("Song added, Thanks! I'm a Bot, beep boop blop");
+                    await e.User.SendMessage("Sorry, I can't add Playlists as for now! :(");
+
+                    /*
+                    //Test for valid URL
+                    bool result = Uri.TryCreate(parameter, UriKind.Absolute, out Uri uriResult)
+                                  && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+
+                    //Answer
+                    if (result) {
+                        _queue.Enqueue(parameter);
+                        await e.User.SendMessage("Playlist added, Thanks!" + _imABot);
+                    } else {
+                        await e.User.SendMessage("Sorry, but that was no valid URL!" + _imABot);
+                    }
+                    */
                 } else {
-                    await e.User.SendMessage("Invalid Command!\n\r" + GetHelp());
+                    await e.User.SendMessage("I got confused, I don't know that command!\n\r" + GetHelp());
                 }
                 return;
             }
@@ -97,6 +124,8 @@ namespace DiscordMusicBot {
                 return;
             }
             if (msg.StartsWith("!clear")) {
+                _queue.Clear();
+                await e.User.SendMessage("Playlist cleared!" + _imABot);
                 return;
             }
             if (msg.StartsWith("!setTimeout")) {
@@ -106,12 +135,14 @@ namespace DiscordMusicBot {
             #endregion
         }
 
+        public async void Play() { }
+
         //Add Song to queue
         public void AddToQueue(string url) { }
 
         public string GetHelp() {
             return
-                " Help: \n" +
+                " Available Commands: \n" +
                 "    !add [url] ... Adds a single Song to Music-queue\n" +
                 "    !addPlaylist [playlist - url]...Adds whole playlist to Music - queue\n" +
                 "    !pause...Pause the queue and current Song\n" +
@@ -119,7 +150,7 @@ namespace DiscordMusicBot {
                 "    !queue...Prints all queued Songs & their User\n" +
                 "    !clear...Clear queue and current Song\n" +
                 "    !setTimeout [timeoutInMilliseconds]...Timeout between being able to request songs\n" +
-                "    !help...Prints available Commands and usage\n\r\n\r";
+                "    !help...Prints available Commands and usage";
         }
 
         public void Dispose() {
