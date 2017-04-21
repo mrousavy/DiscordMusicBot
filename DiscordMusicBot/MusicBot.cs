@@ -13,15 +13,13 @@ namespace DiscordMusicBot {
         private DiscordClient _client;
         private List<string> _permittedUsers;
         private TaskCompletionSource<bool> _tcs;
-        private bool _skip {
+        private bool Skip {
             get {
                 bool ret = _internalSkip;
                 _internalSkip = false;
                 return ret;
             }
-            set {
-                _internalSkip = value;
-            }
+            set => _internalSkip = value;
         }
         private bool _internalSkip;
 
@@ -29,10 +27,9 @@ namespace DiscordMusicBot {
         private Queue<Tuple<string, string>> _queue;
 
         private IAudioClient _audio;
-        private bool _pause {
-            get {
-                return _internalPause;
-            }
+
+        private bool Pause {
+            get => _internalPause;
             set {
                 new Thread(() => _tcs.TrySetResult(value)).Start();
                 _internalPause = value;
@@ -84,8 +81,7 @@ namespace DiscordMusicBot {
 
             //Join First Audio Channel
             try {
-                Server server = _client.FindServers(Information.ServerName)
-                    .FirstOrDefault();
+                Server server = _client.FindServers(Information.ServerName).FirstOrDefault();
                 if (server == null)
                     throw new Exception("No Server found!");
 
@@ -184,7 +180,7 @@ namespace DiscordMusicBot {
                             await e.Channel.SendMessage("Okay, give me one sec to download!" + ImABot);
                             Tuple<string, string> vidInfo = await DownloadHelper.Download(parameter);
                             _queue.Enqueue(vidInfo);
-                            Play();
+                            Pause = false;
                             await e.Channel.SendMessage("Song added, Thanks!" + ImABot);
                         } catch {
                             await e.Channel.SendMessage("Unfortunately I can't play that Song!" + ImABot);
@@ -219,15 +215,15 @@ namespace DiscordMusicBot {
                 }
             } else if (msg.StartsWith("!pause")) {
                 //Pause Song Playback
-                Pause();
+                Pause = true;
                 await e.Channel.SendMessage("Playback paused!" + ImABot);
             } else if (msg.StartsWith("!play")) {
                 //Continue Song Playback
-                Play();
+                Pause = false;
                 await e.Channel.SendMessage("Playback resumed!" + ImABot);
             } else if (msg.StartsWith("!clear")) {
                 //Clear Queue
-                Pause();
+                Pause = true;
                 _queue.Clear();
                 await e.Channel.SendMessage($"{e.User} cleared the Playlist!" + ImABot);
             } else if (msg.StartsWith("!come")) {
@@ -238,91 +234,89 @@ namespace DiscordMusicBot {
                 await e.User.SendMessage("Updated Permitted Users List!");
             } else if (msg.StartsWith("!skip")) {
                 //Skip current Song
-                _skip = true;
-                Play();
+                Skip = true;
+                Pause = false;
                 await e.User.SendMessage("Song skipped!");
             }
 
             #endregion
         }
 
-        //Start/Resume the playing media
-        public void Play() {
-            _pause = false;
-        }
-
-        public void Pause() {
-            _pause = true;
-        }
-
         //Init Player Thread
         public void InitThread() {
-            new Thread(async () => {
-                bool next = false;
+            new Thread(MusicPlay).Start();
+        }
 
-                while (true) {
-                    bool pause = false;
-                    //Next song if current is over
-                    if (!next) {
-                        pause = await _tcs.Task;
-                        _tcs = new TaskCompletionSource<bool>();
+        //Looped Music Play
+        private async void MusicPlay() {
+            bool next = false;
+
+            while (true) {
+                bool pause = false;
+                //Next song if current is over
+                if (!next) {
+                    pause = await _tcs.Task;
+                    _tcs = new TaskCompletionSource<bool>();
+                } else {
+                    next = false;
+                }
+
+                try {
+                    if (_queue.Count == 0) {
+                        _client.SetGame(new Game("Nothing :/"));
                     } else {
-                        next = false;
-                    }
+                        if (!pause) {
+                            var channelCount = _client.GetService<AudioService>().Config.Channels;
+                            WaveFormat outFormat = new WaveFormat(48000, 16, channelCount);
 
-                    try {
-                        if (_queue.Count == 0) {
-                            _client.SetGame(new Game("Nothing :/"));
-                        } else {
-                            if (!pause) {
-                                var channelCount = _client.GetService<AudioService>().Config.Channels;
-                                WaveFormat OutFormat = new WaveFormat(48000, 16, channelCount);
+                            //Get Song
+                            Tuple<string, string> song = _queue.Peek();
+                            //Update "Playing .."
+                            _client.SetGame(new Game(song.Item2));
 
-                                //Get Song
-                                Tuple<string, string> song = _queue.Dequeue();
-                                //Update "Playing .."
-                                _client.SetGame(new Game(song.Item2));
+                            //Init Song
+                            using (var mp3Reader = new Mp3FileReader(song.Item1))
+                            using (var resampler = new MediaFoundationResampler(mp3Reader, outFormat)) {
+                                resampler.ResamplerQuality = 60;
+                                int blockSize = outFormat.AverageBytesPerSecond / 50;
+                                byte[] buffer = new byte[blockSize];
+                                int byteCount;
 
-                                //Init Song
-                                using (var MP3Reader = new Mp3FileReader(song.Item1))
-                                using (var resampler = new MediaFoundationResampler(MP3Reader, OutFormat)) {
-                                    resampler.ResamplerQuality = 60;
-                                    int blockSize = OutFormat.AverageBytesPerSecond / 50;
-                                    byte[] buffer = new byte[blockSize];
-                                    int byteCount;
+                                while ((byteCount = resampler.Read(buffer, 0, blockSize)) > 0 && !Skip) {
+                                    if (byteCount < blockSize) {
+                                        // Incomplete Frame
+                                        for (int i = byteCount; i < blockSize; i++)
+                                            buffer[i] = 0;
+                                    }
+                                    // Send the buffer to Discord
+                                    _audio.Send(buffer, 0, blockSize);
+                                    _audio.Wait();
 
-                                    while ((byteCount = resampler.Read(buffer, 0, blockSize)) > 0 && !_skip) {
-                                        if (byteCount < blockSize) {
-                                            // Incomplete Frame
-                                            for (int i = byteCount; i < blockSize; i++)
-                                                buffer[i] = 0;
-                                        }
-                                        // Send the buffer to Discord
-                                        _audio.Send(buffer, 0, blockSize);
-                                        _audio.Wait();
+                                    if (Pause) {
+                                        bool pauseAgain;
 
-                                        if (_pause) {
-                                            bool pauseAgain;
-
-                                            do {
-                                                pauseAgain = await _tcs.Task;
-                                                _tcs = new TaskCompletionSource<bool>();
-                                            } while (pauseAgain);
-                                        }
+                                        do {
+                                            pauseAgain = await _tcs.Task;
+                                            _tcs = new TaskCompletionSource<bool>();
+                                        } while (pauseAgain);
                                     }
                                 }
-
-                                try {
-                                    File.Delete(song.Item1);
-                                } catch { }
-                                next = true;
                             }
+
+                            //Finally remove item
+                            _queue.Dequeue();
+                            try {
+                                File.Delete(song.Item1);
+                            } catch {
+                                // ignored
+                            }
+                            next = true;
                         }
-                    } catch {
-                        //audio can't be played
                     }
+                } catch {
+                    //audio can't be played
                 }
-            }).Start();
+            }
         }
 
         public string GetHelp() {

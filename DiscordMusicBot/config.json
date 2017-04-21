@@ -1,1 +1,8 @@
-﻿
+﻿{
+  "ClientId": "YourClientID",
+  "ClientSecret": "YourClientSecret",
+  "BotName": "YourBotName",
+  "Token": "YourBotToken",
+  "ServerName": "TheServerYouWantToConnectTo",
+  "ChannelName": "TheVoiceChannelYouWantToJoin"
+}

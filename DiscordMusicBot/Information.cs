@@ -14,11 +14,33 @@ namespace DiscordMusicBot {
     }
 
     public class Config {
-        public string ClientId = "304226292545486849";
-        public string ClientSecret = "bVaQVYbg3XKVGKKllvcbGPtIzaHzkc8o";
-        public string BotName = "TheBotsAreTakingOver";
-        public string Token = "MzA0MjI2MjkyNTQ1NDg2ODQ5.C9pRVw.EA5DylXkdJhI7wHiuu_YiicJ-gg";
-        public string ServerName = "Universeller Homoserver";
-        public string ChannelName = "Lounge 1";
+        public string ClientId = "YourClientID";
+        public string ClientSecret = "YourClientSecret";
+        public string BotName = "YourBotName";
+        public string Token = "YourBotToken";
+        public string ServerName = "TheServerYouWantToConnectTo";
+        public string ChannelName = "TheVoiceChannelYouWantToJoin";
+
+        public static bool operator ==(Config cfg1, Config cfg2) {
+            return ReferenceEquals(cfg1, null) ? ReferenceEquals(cfg2, null) : cfg1.Equals(cfg2);
+        }
+
+        public static bool operator !=(Config cfg1, Config cfg2) {
+            return !ReferenceEquals(cfg1, null) ? !ReferenceEquals(cfg2, null) : !cfg1.Equals(cfg2);
+        }
+
+        public bool Equals(Config compare) {
+            return
+                ClientId == compare.ClientId &&
+                ClientSecret == compare.ClientSecret &&
+                BotName == compare.BotName &&
+                Token == compare.Token &&
+                ServerName == compare.ServerName &&
+                ChannelName == compare.ChannelName;
+        }
+
+        public override int GetHashCode() {
+            return (ClientId + ClientSecret + BotName + Token + ServerName + ChannelName).GetHashCode();
+        }
     }
 }
