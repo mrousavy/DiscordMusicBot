@@ -90,9 +90,11 @@ namespace DiscordMusicBot {
                     throw new Exception("No Server found!");
 
                 List<Channel> channels = new List<Channel>(server.VoiceChannels);
-                Channel channel = channels.FirstOrDefault();
-                if (channel == null)
-                    throw new Exception("No Voice Channel found!");
+
+                if (channels.Count < 1)
+                    throw new Exception("No Channels found!");
+
+                Channel channel = channels.FirstOrDefault(c => c.Name == Information.ChannelName) ?? channels[0];
 
                 AudioService service = _client.GetService<AudioService>();
                 _audio = await service.Join(channel);
