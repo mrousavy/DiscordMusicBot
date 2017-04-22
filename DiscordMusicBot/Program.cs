@@ -12,10 +12,12 @@ namespace DiscordMusicBot {
             try {
                 string json = File.ReadAllText("config.json");
                 Config cfg = JsonConvert.DeserializeObject<Config>(json);
+                
                 if (cfg == new Config())
-                    throw new Exception();
-            } catch {
+                    throw new Exception("Config is default Config!");
+            } catch (Exception e) {
                 Console.WriteLine("Your config.json has incorrect formatting, or is not readable!");
+                Console.WriteLine(e.Message);
 
                 try {
                     //Open up for editing
