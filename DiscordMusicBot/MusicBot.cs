@@ -70,7 +70,13 @@ namespace DiscordMusicBot {
 
         //Event on Servers available
         private async void ServerAvailable(object sender, ServerEventArgs e) {
+            //Only get first Server
             _client.ServerAvailable -= ServerAvailable;
+
+            if (_client.Servers.Count(s => s.Name == Information.ServerName) == 0) {
+                _client.ServerAvailable += ServerAvailable;
+                return;
+            }
 
             //Print added Servers
             Console.WriteLine("\nAdded Servers:");
