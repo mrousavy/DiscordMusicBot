@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 namespace DiscordMusicBot {
     internal class MusicBot : IDisposable {
         private DiscordClient _client;
+        private Channel _textChannel;
         private List<string> _permittedUsers;
         private TaskCompletionSource<bool> _tcs;
         private bool Skip {
@@ -91,17 +92,23 @@ namespace DiscordMusicBot {
                 if (server == null)
                     throw new Exception("No Server found!");
 
-                List<Channel> channels = new List<Channel>(server.VoiceChannels);
+                List<Channel> textChannels = new List<Channel>(server.TextChannels);
+                List<Channel> voiceChannels = new List<Channel>(server.VoiceChannels);
 
-                if (channels.Count < 1)
-                    throw new Exception("No Channels found!");
+                if (textChannels.Count < 1)
+                    throw new Exception("No Text Channels found!");
 
-                Channel channel = channels.FirstOrDefault(c => c.Name == Information.ChannelName) ?? channels[0];
+                if (voiceChannels.Count < 1)
+                    throw new Exception("No Voice Channels found!");
+
+                _textChannel = voiceChannels.FirstOrDefault(c => c.Name == Information.TextChannelName) ?? textChannels[0];
+                Channel voiceChannel = voiceChannels.FirstOrDefault(c => c.Name == Information.VoiceChannelName) ?? voiceChannels[0];
 
                 AudioService service = _client.GetService<AudioService>();
-                _audio = await service.Join(channel);
+                _audio = await service.Join(voiceChannel);
 
-                Console.WriteLine($"Joined Channel \"{_audio.Channel.Name}\"");
+                Console.WriteLine($"Joined Text Channel \"{_textChannel.Name}\"");
+                Console.WriteLine($"Joined Voice Channel \"{_audio.Channel.Name}\"");
             } catch (Exception ex) {
                 Console.WriteLine("Could not join Voice Channel! (" + ex.Message + ")");
             }
@@ -129,7 +136,11 @@ namespace DiscordMusicBot {
 
         //On Private Message Received
         private async void MessageReceived(object sender, MessageEventArgs e) {
+            //Avoid receiving own messages
             if (e.User.Name == _client.CurrentUser.Name)
+                return;
+            //Avoid Spam in #general
+            if (e.Channel.Name == "general")
                 return;
 
             Console.WriteLine($"User \"{e.User}\" wrote: \"{e.Message.Text}\"");
@@ -272,7 +283,7 @@ namespace DiscordMusicBot {
                         _client.SetGame(new Game("Nothing :/"));
                     } else {
                         if (!pause) {
-                            var channelCount = _client.GetService<AudioService>().Config.Channels;
+                            int channelCount = _client.GetService<AudioService>().Config.Channels;
                             WaveFormat outFormat = new WaveFormat(48000, 16, channelCount);
 
                             //Get Song
@@ -281,8 +292,8 @@ namespace DiscordMusicBot {
                             _client.SetGame(new Game(song.Item2));
 
                             //Init Song
-                            using (var mp3Reader = new Mp3FileReader(song.Item1))
-                            using (var resampler = new MediaFoundationResampler(mp3Reader, outFormat)) {
+                            using (Mp3FileReader mp3Reader = new Mp3FileReader(song.Item1))
+                            using (MediaFoundationResampler resampler = new MediaFoundationResampler(mp3Reader, outFormat)) {
                                 resampler.ResamplerQuality = 60;
                                 int blockSize = outFormat.AverageBytesPerSecond / 50;
                                 byte[] buffer = new byte[blockSize];

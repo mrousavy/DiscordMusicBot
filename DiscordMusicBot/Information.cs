@@ -1,5 +1,5 @@
-﻿using System.IO;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using System.IO;
 
 namespace DiscordMusicBot {
     internal static class Information {
@@ -10,7 +10,8 @@ namespace DiscordMusicBot {
         internal static string BotName => Config.BotName;
         internal static string Token => Config.Token;
         internal static string ServerName => Config.ServerName;
-        internal static string ChannelName => Config.ChannelName;
+        internal static string TextChannelName => Config.TextChannelName;
+        internal static string VoiceChannelName => Config.VoiceChannelName;
     }
 
     public class Config {
@@ -19,7 +20,8 @@ namespace DiscordMusicBot {
         public string BotName = "YourBotName";
         public string Token = "YourBotToken";
         public string ServerName = "TheServerYouWantToConnectTo";
-        public string ChannelName = "TheVoiceChannelYouWantToJoin";
+        public string TextChannelName = "TheTextChannelYouWantToJoin";
+        public string VoiceChannelName = "TheVoiceChannelYouWantToJoin";
 
         public static bool operator ==(Config cfg1, Config cfg2) {
             return ReferenceEquals(cfg1, null) ? ReferenceEquals(cfg2, null) : cfg1.Equals(cfg2);
@@ -36,11 +38,12 @@ namespace DiscordMusicBot {
                 BotName == compare.BotName &&
                 Token == compare.Token &&
                 ServerName == compare.ServerName &&
-                ChannelName == compare.ChannelName;
+                TextChannelName == compare.TextChannelName &&
+                VoiceChannelName == compare.VoiceChannelName;
         }
 
         public override int GetHashCode() {
-            return (ClientId + ClientSecret + BotName + Token + ServerName + ChannelName).GetHashCode();
+            return (ClientId + ClientSecret + BotName + Token + ServerName + TextChannelName + VoiceChannelName).GetHashCode();
         }
     }
 }
