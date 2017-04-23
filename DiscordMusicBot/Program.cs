@@ -2,9 +2,15 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DiscordMusicBot {
     internal class Program {
+        private static MusicBot _bot;
+
+
         private static void Main(string[] args) {
             Console.WriteLine("Starting...");
             Console.WriteLine("(Press Ctrl + C to exit Bot)");
@@ -45,16 +51,43 @@ namespace DiscordMusicBot {
                 return;
             }
 
-            MusicBot bot = new MusicBot();
-            bool loop = true;
+            _handler += new EventHandler(Handler);
+            SetConsoleCtrlHandler(_handler, true);
 
-            Console.CancelKeyPress += delegate {
-                bot.Dispose();
-                loop = false;
-            };
+            Do();
 
-            while (loop)
-                Console.ReadKey();
+            //Thread Block
+            Thread.Sleep(-1);
+        }
+
+
+        private static async void Do() {
+            _bot = new MusicBot();
+
+            //Async Thread Block
+            await Task.Delay(-1);
+        }
+
+
+
+        [DllImport("Kernel32")]
+        private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
+
+        private delegate bool EventHandler(CtrlType sig);
+        private static EventHandler _handler;
+
+        private enum CtrlType {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT = 1,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT = 6
+        }
+
+        private static bool Handler(CtrlType sig) {
+            _bot.Dispose();
+
+            return false;
         }
     }
 }
