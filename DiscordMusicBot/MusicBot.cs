@@ -53,9 +53,15 @@ namespace DiscordMusicBot {
             //Init & Connect Client
             _client = new DiscordClient();
             _client.JoinedServer += Joined;
+            //Ready
             _client.Ready += Ready;
+            //Message
             _client.MessageReceived += MessageReceived;
+            //Server
             _client.ServerAvailable += ServerAvailable;
+            _client.LeftServer += ServerLeft;
+            //Channels
+            _client.ChannelDestroyed += ChannelDestroyed;
             await _client.Connect(Information.Token, TokenType.Bot);
 
             //Setup Audio
@@ -66,26 +72,38 @@ namespace DiscordMusicBot {
 
             InitThread();
 
-            Console.Title = $"Music Bot ({_client.State})";
+            Status();
+        }
+
+        private async void ServerLeft(object sender, ServerEventArgs e) {
+            await Join();
+        }
+
+        private async void ChannelDestroyed(object sender, ChannelEventArgs e) {
+            await Join();
         }
 
         //Event on Servers available
         private async void ServerAvailable(object sender, ServerEventArgs e) {
-            //Only get first Server
-            _client.ServerAvailable -= ServerAvailable;
-
-            if (_client.Servers.Count(s => s.Name == Information.ServerName) == 0) {
-                _client.ServerAvailable += ServerAvailable;
+            //Only join configured Server
+            if (e.Server.Name != Information.ServerName)
                 return;
-            }
 
             //Print added Servers
-            Console.WriteLine("\nAdded Servers:");
-            Console.Write("    ");
-            foreach (Server server in _client.Servers)
-                Console.Write(server.Name + ", ");
+            Console.WriteLine("\n\rAdded Servers:");
+            foreach (Server server in _client.Servers) {
+                if (server.Name == Information.ServerName) {
+                    Console.WriteLine($" -> {server.Name}   (Selected)");
+                } else {
+                    Console.WriteLine($"    {server.Name}");
+                }
+            }
             Console.WriteLine("");
 
+            await Join();
+        }
+
+        public async Task Join() {
             //Join First Audio Channel
             try {
                 Server server = _client.FindServers(Information.ServerName).FirstOrDefault();
@@ -106,6 +124,9 @@ namespace DiscordMusicBot {
 
                 AudioService service = _client.GetService<AudioService>();
                 _audio = await service.Join(voiceChannel);
+
+                //_queue.Enqueue(new Tuple<string, string>("Resources\\Hello.mp3", "Hi!"));
+                //Pause = false;
 
                 Console.WriteLine($"Joined Text Channel \"{_textChannel.Name}\"");
                 Console.WriteLine($"Joined Voice Channel \"{_audio.Channel.Name}\"");
@@ -281,6 +302,7 @@ namespace DiscordMusicBot {
                 try {
                     if (_queue.Count == 0) {
                         _client.SetGame(new Game("Nothing :/"));
+                        Console.WriteLine($"Now playing: Nothing");
                     } else {
                         if (!pause) {
                             int channelCount = _client.GetService<AudioService>().Config.Channels;
@@ -290,6 +312,7 @@ namespace DiscordMusicBot {
                             Tuple<string, string> song = _queue.Peek();
                             //Update "Playing .."
                             _client.SetGame(new Game(song.Item2));
+                            Console.WriteLine($"Now playing: {song.Item2}");
 
                             //Init Song
                             using (Mp3FileReader mp3Reader = new Mp3FileReader(song.Item1))
@@ -335,6 +358,20 @@ namespace DiscordMusicBot {
                 }
             }
         }
+
+
+        private async void Status() {
+            while (true) {
+                ConnectionState state = _client.State;
+                Console.Title = $"Music Bot ({state})";
+                if (state != ConnectionState.Connected) {
+                    await Join();
+                }
+
+                await Task.Delay(1000);
+            }
+        }
+
 
         public string GetHelp() {
             return
