@@ -103,7 +103,7 @@ namespace DiscordMusicBot {
                 string file;
                 int count = 0;
                 do {
-                    file = Path.Combine(DownloadPath, "tempvideo" + ++count + ".%(ext)s");
+                    file = Path.Combine(DownloadPath, "botsong" + ++count + ".mp3");
                 } while (File.Exists(file));
 
                 //youtube-dl.exe
@@ -112,7 +112,7 @@ namespace DiscordMusicBot {
                 //Download Video
                 ProcessStartInfo youtubedlDownload = new ProcessStartInfo() {
                     FileName = "youtube-dl",
-                    Arguments = $"-x --audio-format mp3 -o \"{file}\" {url}",
+                    Arguments = $"-x --audio-format mp3 -o \"{file.Replace(".mp3", ".%(ext)s")}\" {url}",
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     /*UseShellExecute = false*/     //Linux?
@@ -121,15 +121,13 @@ namespace DiscordMusicBot {
                 //Wait until download is finished
                 youtubedl.WaitForExit();
 
-                file = file.Replace(".%(ext)s", ".mp3");
-
                 if (File.Exists(file)) {
                     //Return MP3 Path & Video Title
                     tcs.SetResult(file);
                 } else {
                     //Error downloading
                     tcs.SetResult(null);
-                    MusicBot.Print($"Could not download Song, youtube-dl responded with: {youtubedl.StandardOutput.ReadToEnd()}", ConsoleColor.Red);
+                    MusicBot.Print($"Could not download Song, youtube-dl responded with:\n\r{youtubedl.StandardOutput.ReadToEnd()}", ConsoleColor.Red);
                 }
             }).Start();
 
@@ -164,7 +162,7 @@ namespace DiscordMusicBot {
                 //Download Video
                 ProcessStartInfo youtubedlDownload = new ProcessStartInfo() {
                     FileName = "youtube-dl",
-                    Arguments = $"--extract-audio --audio-format mp3 -o \"{file}\" {url}",
+                    Arguments = $"--extract-audio --audio-format mp3 -o \"{file.Replace(".mp3", ".%(ext)s")}\" {url}",
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     /*UseShellExecute = false*/     //Linux?
@@ -179,7 +177,7 @@ namespace DiscordMusicBot {
                 } else {
                     //Error downloading
                     tcs.SetResult(null);
-                    MusicBot.Print($"Could not download Song, youtube-dl responded with: {youtubedl.StandardOutput.ReadToEnd()}", ConsoleColor.Red);
+                    MusicBot.Print($"Could not download Song, youtube-dl responded with:\n\r{youtubedl.StandardOutput.ReadToEnd()}", ConsoleColor.Red);
                 }
             }).Start();
 
