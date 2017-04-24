@@ -1,5 +1,5 @@
 # <img src="https://image.freepik.com/free-icon/music-disc-with-white-details_318-43070.jpg" width="42"> DiscordMusicBot
-A Discord Bot for playing YouTube and SoundCloud music.
+A Discord Bot for playing YouTube music.
 
 [Click here to add this MusicBot to your Server](https://discordapp.com/oauth2/authorize?client_id=304226292545486849&scope=bot)
 
