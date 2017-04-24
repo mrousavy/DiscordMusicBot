@@ -69,7 +69,7 @@ namespace DiscordMusicBot {
                 //Get Video Title
                 ProcessStartInfo youtubedlGetTitle = new ProcessStartInfo() {
                     FileName = "youtube-dl",
-                    Arguments = $"-e --get-duration -s {url}",
+                    Arguments = $"-s -e --get-duration {url}",
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     /*UseShellExecute = false*/     //Linux?
@@ -103,7 +103,7 @@ namespace DiscordMusicBot {
                 string file;
                 int count = 0;
                 do {
-                    file = Path.Combine(DownloadPath, "tempvideo" + ++count + ".mp3");
+                    file = Path.Combine(DownloadPath, "tempvideo" + ++count + ".%(ext)s");
                 } while (File.Exists(file));
 
                 //youtube-dl.exe
@@ -112,7 +112,7 @@ namespace DiscordMusicBot {
                 //Download Video
                 ProcessStartInfo youtubedlDownload = new ProcessStartInfo() {
                     FileName = "youtube-dl",
-                    Arguments = $"-f m4a -o \"{file}\" {url}",
+                    Arguments = $"-x --audio-format mp3 -o \"{file}\" {url}",
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     /*UseShellExecute = false*/     //Linux?
@@ -120,6 +120,9 @@ namespace DiscordMusicBot {
                 youtubedl = Process.Start(youtubedlDownload);
                 //Wait until download is finished
                 youtubedl.WaitForExit();
+
+
+                file = file.Replace(".%(ext)s", ".mp3");
 
                 if (File.Exists(file)) {
                     //Return MP3 Path & Video Title

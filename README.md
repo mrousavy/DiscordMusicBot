@@ -1,4 +1,4 @@
-# <img src="https://image.freepik.com/free-icon/music-disc-with-white-details_318-43070.jpg" width="42"> DiscordMusicBot
+# <img src="DiscordMusicBot/disc.png" width="42"> DiscordMusicBot
 A Discord Bot for playing YouTube music.
 
 # Installing
@@ -18,7 +18,7 @@ A Discord Bot for playing YouTube music.
 * [Install .NET Core](https://www.microsoft.com/net/download/linux)
 * [Install FFmpeg](https://ffmpeg.org/download.html#build-linux)
 * Install **youtube-dl**
-    ```Bash
+    ```shell
     sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
 
     sudo chmod a+rx /usr/local/bin/youtube-dl
@@ -29,7 +29,7 @@ A Discord Bot for playing YouTube music.
 * Create your app [here](https://discordapp.com/developers/applications/me)
 * Create **DiscordMusicBot/config.json** file
 * Paste this into **config.json** and set your values
-    ```
+    ```json
     {
     "ClientId": "[app Client ID]",
     "ClientSecret": "[app secret]",

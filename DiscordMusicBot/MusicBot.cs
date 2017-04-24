@@ -18,10 +18,14 @@ namespace DiscordMusicBot {
         private List<string> _permittedUsers;
         private TaskCompletionSource<bool> _tcs;
         private CancellationTokenSource _disposeToken;
-        private Queue<Tuple<string, string>> _queue;
         private IAudioClient _audio;
         private const string ImABot = " *I'm a Bot, beep boop blop*";
         private readonly string[] _commands = { "!help", "!queue", "!add", "!addPlaylist", "!pause", "!play", "!clear", "!come", "!update", "!skip" };
+
+        /// <summary>
+        /// Tuple<FilePath, Video Name, Duration, Requested by>
+        /// </summary>
+        private Queue<Tuple<string, string, string, string>> _queue;
 
         private bool Pause {
             get => _internalPause;
@@ -50,7 +54,7 @@ namespace DiscordMusicBot {
         public async void Initialize() {
             //Init Config and Queue
             ReadConfig();
-            _queue = new Queue<Tuple<string, string>>();
+            _queue = new Queue<Tuple<string, string, string, string>>();
             _tcs = new TaskCompletionSource<bool>();
             _disposeToken = new CancellationTokenSource();
 
@@ -67,10 +71,10 @@ namespace DiscordMusicBot {
 
             //+
             _client.Connected += Connected;
-            _client.Ready += Ready;
+            _client.Ready += OnReady;
 
             //Message
-            _client.MessageReceived += MessageReceived;
+            _client.MessageReceived += OnMessageReceived;
 
             Console.Title = "Music Bot (Connecting...)";
 
@@ -84,6 +88,8 @@ namespace DiscordMusicBot {
 
             Status();
         }
+
+        #region Events
 
         //Connection Lost
         private static Task Disconnected(Exception arg) {
@@ -99,8 +105,15 @@ namespace DiscordMusicBot {
             return Task.CompletedTask;
         }
 
+
+        //Pass Ready Event on to Async Method (so nothing blocks)
+        private Task OnReady() {
+            Ready();
+            return Task.CompletedTask;
+        }
+
         //On Bot ready
-        private async Task Ready() {
+        private async void Ready() {
             Print("Ready!", ConsoleColor.Green);
 
             //"Playing Nothing :/"
@@ -125,37 +138,14 @@ namespace DiscordMusicBot {
             }
         }
 
-        //Print all Servers on Console
-        private void PrintServers() {
-            //Print added Servers
-            Print("\n\rAdded Servers:", ConsoleColor.Cyan);
-            foreach (SocketGuild server in _client.Guilds) {
-                Print(server.Name == Information.ServerName
-                    ? $" [x] {server.Name}"
-                    : $" [ ] {server.Name}", ConsoleColor.Cyan);
-            }
-            Print("", ConsoleColor.Cyan);
+        //Pass MessageReceived Event on to Async Method (so nothing blocks)
+        private Task OnMessageReceived(SocketMessage socketMsg) {
+            MessageReceived(socketMsg);
+            return Task.CompletedTask;
         }
 
-        private async Task Connect() {
-            await _client.LoginAsync(TokenType.Bot, Information.Token);
-            await _client.StartAsync();
-        }
-
-        //Read Config from File
-        public void ReadConfig() {
-            if (!File.Exists("users.txt"))
-                File.Create("users.txt").Dispose();
-
-            _permittedUsers = new List<string>(File.ReadAllLines("users.txt"));
-
-
-            string msg = _permittedUsers.Aggregate("Permitted Users:\n\r    ", (current, user) => current + (user + ", "));
-            Print(msg, ConsoleColor.Cyan);
-        }
-
-        //On Private Message Received
-        private async Task MessageReceived(SocketMessage socketMsg) {
+        //On Message Received (async)
+        private async void MessageReceived(SocketMessage socketMsg) {
             try {
                 #region Message Filtering
 
@@ -212,13 +202,7 @@ namespace DiscordMusicBot {
                 } else if (msg.StartsWith("!queue")) {
                     Print("User requested: Queue", ConsoleColor.Magenta);
                     //Print Song Queue
-                    if (_queue.Count == 0) {
-                        await dm.SendMessageAsync("Sorry, Song Queue is empty!" + ImABot);
-                    } else {
-                        string queue = _queue.Aggregate("**Song Queue:**\n",
-                            (current, url) => current + ($"    {url.Item2}\n"));
-                        await dm.SendMessageAsync(queue);
-                    }
+                    await SendQueue(dm);
                     return;
                 }
 
@@ -262,11 +246,11 @@ namespace DiscordMusicBot {
 
                                         //Download
                                         string file = await DownloadHelper.Download(parameter);
-                                        Tuple<string, string> vidInfo = new Tuple<string, string>(file, info.Item1);
+                                        var vidInfo = new Tuple<string, string, string, string>(file, info.Item1, info.Item2, socketMsg.Author.ToString());
 
                                         _queue.Enqueue(vidInfo);
                                         Pause = false;
-                                        Print($"Song added to playlist! ({vidInfo.Item2} ({info.Item2}))!", ConsoleColor.Magenta);
+                                        Print($"Song added to playlist! ({vidInfo.Item2} ({vidInfo.Item3}))!", ConsoleColor.Magenta);
                                     } catch (Exception ex) {
                                         Print($"Could not download Song! {ex.Message}", ConsoleColor.Red);
                                         await SendMessage(
@@ -305,11 +289,11 @@ namespace DiscordMusicBot {
 
                                         //Download
                                         string file = await DownloadHelper.DownloadPlaylist(parameter);
-                                        Tuple<string, string> vidInfo = new Tuple<string, string>(file, info.Item1);
+                                        var vidInfo = new Tuple<string, string, string, string>(file, info.Item1, info.Item2, socketMsg.Author.ToString());
 
                                         _queue.Enqueue(vidInfo);
                                         Pause = false;
-                                        Print($"Playlist added to playlist! (\"{vidInfo.Item2}\" ({info.Item2}))!", ConsoleColor.Magenta);
+                                        Print($"Playlist added to playlist! (\"{vidInfo.Item2}\" ({vidInfo.Item2}))!", ConsoleColor.Magenta);
                                     } catch (Exception ex) {
                                         Print($"Could not download Playlist! {ex.Message}", ConsoleColor.Red);
                                         await SendMessage(
@@ -412,10 +396,162 @@ namespace DiscordMusicBot {
             }
         }
 
+        #endregion
+
+        #region Discord Helper
+
+        //Login as Bot and Start Bot
+        private async Task Connect() {
+            await _client.LoginAsync(TokenType.Bot, Information.Token);
+            await _client.StartAsync();
+        }
+
+        //Log DiscordBot Messages to console
+        private static Task Log(LogMessage arg) {
+            switch (arg.Severity) {
+                case LogSeverity.Critical:
+                case LogSeverity.Error:
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    break;
+                case LogSeverity.Debug:
+                case LogSeverity.Verbose:
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    break;
+                case LogSeverity.Warning:
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    break;
+                case LogSeverity.Info:
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    break;
+                default:
+                    break;
+            }
+            Console.WriteLine($"[{arg.Severity}] [{arg.Source}] [{arg.Message}]");
+
+            Console.ResetColor();
+            return Task.CompletedTask;
+        }
+
+        //Send Message to channel
+        public async Task SendMessage(string message) {
+            if (_textChannel != null)
+                await _textChannel.SendMessageAsync(message);
+        }
+
+        private async Task SendQueue(IMessageChannel channel) {
+            EmbedBuilder builder = new EmbedBuilder() {
+                Author = new EmbedAuthorBuilder { Name = "Music Bot Song Queue" },
+                Footer = new EmbedFooterBuilder() { Text = "(I don't actually sing)" },
+                Color = new Color(00, 99, 33)
+            };
+            //builder.ThumbnailUrl = "some cool url";
+            builder.Url = "http://github.com/mrousavy/DiscordMusicBot";
+
+            if (_queue.Count == 0) {
+                await channel.SendMessageAsync("Sorry, Song Queue is empty! Add some songs with the `!add [url]` command!" + ImABot);
+            } else {
+                foreach (Tuple<string, string, string, string> song in _queue) {
+                    builder.AddField($"{song.Item2} ({song.Item3})", $"by {song.Item4}");
+                }
+
+                await channel.SendMessageAsync("", embed: builder.Build());
+            }
+        }
+
+        //Dispose this Object (Async)
+        private async Task DisposeAsync() {
+            try {
+                await _client.StopAsync();
+                await _client.LogoutAsync();
+            } catch {
+                // could not disconnect
+            }
+            _client?.Dispose();
+        }
+
+        //Refresh Status of DiscordClient
+        private async void Status() {
+            try {
+                while (!_disposeToken.IsCancellationRequested) {
+                    ConnectionState state = _client.ConnectionState;
+                    Console.Title = $"Music Bot ({state})";
+                    if (state == ConnectionState.Disconnected) {
+                        await Task.Delay(5000, _disposeToken.Token);
+                        // if still not connected, try joining
+                        if (state == ConnectionState.Disconnected) {
+                            await Connect();
+                        }
+                    }
+
+                    await Task.Delay(5000, _disposeToken.Token);
+                }
+            } catch (TaskCanceledException) {
+                // _disposeToken Cancelled called
+            }
+        }
+
+        #endregion
+
+        #region Helper
+
+        //Log own Messages to console
+        public static void Print(string message, ConsoleColor color) {
+            Console.ForegroundColor = color;
+            Console.WriteLine(message);
+            Console.ResetColor();
+        }
+
+        //Return Bot Help
+        public string GetHelp() {
+            return
+                " **Available Commands:** \n" +
+                "    `!add [url]`                    ... *Adds a single Song to Music-queue*\n" +
+                "    `!addPlaylist [playlist - url]` ... *Adds whole playlist to Music - queue*\n" +
+                "    `!pause`                        ... *Pause the queue and current Song*\n" +
+                "    `!play`                         ... *Resume the queue and current Song*\n" +
+                "    `!queue`                        ... *Prints all queued Songs & their User*\n" +
+                "    `!clear`                        ... *Clear queue and current Song*\n" +
+                "    `!help`                         ... *Prints available Commands and usage*\n" +
+                "    `!come`                         ... *Let Bot join your Channel*\n" +
+                "    `!update`                       ... *Updates the Permitted Clients List from clients.txt*\n" +
+                "**Visit http://github.com/mrousavy/DiscordMusicBot for more Info!**";
+        }
+
+        //Print all Servers on Console
+        private void PrintServers() {
+            //Print added Servers
+            Print("\n\rAdded Servers:", ConsoleColor.Cyan);
+            foreach (SocketGuild server in _client.Guilds) {
+                Print(server.Name == Information.ServerName
+                    ? $" [x] {server.Name}"
+                    : $" [ ] {server.Name}", ConsoleColor.Cyan);
+            }
+            Print("", ConsoleColor.Cyan);
+        }
+
+        //Read Config from File
+        public void ReadConfig() {
+            if (!File.Exists("users.txt"))
+                File.Create("users.txt").Dispose();
+
+            _permittedUsers = new List<string>(File.ReadAllLines("users.txt"));
+
+
+            string msg = _permittedUsers.Aggregate("Permitted Users:\n\r    ", (current, user) => current + (user + ", "));
+            Print(msg, ConsoleColor.Cyan);
+        }
+
         //Init Player Thread
         public void InitThread() {
+            //TODO: Main Thread or New Thread?
+            //MusicPlay();
             new Thread(MusicPlay).Start();
         }
+
+
+        #endregion
+
+        #region Audio
 
         //Get ffmpeg Audio Procecss
         private static Process GetFfmpeg(string path) {
@@ -447,8 +583,9 @@ namespace DiscordMusicBot {
                         !_disposeToken.IsCancellationRequested  // On Cancel/Dispose requested, stop sending
                         ) {
                         try {
-                            int read = await output.ReadAsync(buffer, bytesSent, bufferSize, _disposeToken.Token);
+                            int read = await output.ReadAsync(buffer, 0, bufferSize, _disposeToken.Token);
                             await discord.WriteAsync(buffer, bytesSent, read, _disposeToken.Token);
+                            //await discord.FlushAsync();
 
                             if (Pause) {
                                 bool pauseAgain;
@@ -467,6 +604,8 @@ namespace DiscordMusicBot {
                     }
                 }
             }
+
+            ffmpeg.WaitForExit();
         }
 
         //Looped Music Play
@@ -491,11 +630,11 @@ namespace DiscordMusicBot {
                     } else {
                         if (!pause) {
                             //Get Song
-                            Tuple<string, string> song = _queue.Peek();
+                            var song = _queue.Peek();
                             //Update "Playing .."
                             await _client.SetGameAsync(song.Item2, song.Item1);
-                            Print($"Now playing: {song.Item2}", ConsoleColor.Magenta);
-                            await SendMessage($"Now playing: **{song.Item2}**");
+                            Print($"Now playing: {song.Item2} ({song.Item3})", ConsoleColor.Magenta);
+                            await SendMessage($"Now playing: **{song.Item2}** ({song.Item3})");
 
                             await SendAudio(song.Item1);
 
@@ -505,7 +644,7 @@ namespace DiscordMusicBot {
                                 // ignored
                             } finally {
                                 //Finally remove song from playlist
-                                _queue.Dequeue();
+                                //_queue.Dequeue();
                             }
                             next = true;
                         }
@@ -516,80 +655,7 @@ namespace DiscordMusicBot {
             }
         }
 
-        //Refresh Status of DiscordClient
-        private async void Status() {
-            try {
-                while (!_disposeToken.IsCancellationRequested) {
-                    ConnectionState state = _client.ConnectionState;
-                    Console.Title = $"Music Bot ({state})";
-                    if (state == ConnectionState.Disconnected) {
-                        await Task.Delay(5000, _disposeToken.Token);
-                        // if still not connected, try joining
-                        if (state == ConnectionState.Disconnected) {
-                            await Connect();
-                        }
-                    }
-
-                    await Task.Delay(5000, _disposeToken.Token);
-                }
-            } catch (TaskCanceledException) {
-                // _disposeToken Cancelled called
-            }
-        }
-
-        //Return Help
-        public string GetHelp() {
-            return
-                " **Available Commands:** \n" +
-                "    !add [url]                    ... *Adds a single Song to Music-queue*\n" +
-                "    !addPlaylist [playlist - url] ... *Adds whole playlist to Music - queue*\n" +
-                "    !pause                        ... *Pause the queue and current Song*\n" +
-                "    !play                         ... *Resume the queue and current Song*\n" +
-                "    !queue                        ... *Prints all queued Songs & their User*\n" +
-                "    !clear                        ... *Clear queue and current Song*\n" +
-                "    !help                         ... *Prints available Commands and usage*\n" +
-                "    !come                         ... *Let Bot join your Channel*\n" +
-                "    !update                       ... *Updates the Permitted Clients List from clients.txt*";
-        }
-
-        //Log DiscordBot Messages to console
-        private static Task Log(LogMessage arg) {
-            switch (arg.Severity) {
-                case LogSeverity.Critical:
-                case LogSeverity.Error:
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    break;
-                case LogSeverity.Debug:
-                case LogSeverity.Verbose:
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    break;
-                case LogSeverity.Warning:
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    break;
-                case LogSeverity.Info:
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    break;
-                default:
-                    break;
-            }
-            Console.WriteLine($"[{arg.Severity}] [{arg.Source}] [{arg.Message}]");
-
-            Console.ResetColor();
-            return Task.CompletedTask;
-        }
-
-        //Log own Messages to console
-        public static void Print(string message, ConsoleColor color) {
-            Console.ForegroundColor = color;
-            Console.WriteLine(message);
-            Console.ResetColor();
-        }
-
-        //Send Message to channel
-        public async Task SendMessage(string message) {
-            if (_textChannel != null)
-                await _textChannel.SendMessageAsync(message);
-        }
+        #endregion
 
         //Dispose this Object
         public void Dispose() {
@@ -600,7 +666,7 @@ namespace DiscordMusicBot {
 
             //Run File Delete on new Thread
             new Thread(() => {
-                foreach (Tuple<string, string> song in _queue) {
+                foreach (var song in _queue) {
                     try {
                         File.Delete(song.Item1);
                     } catch {
@@ -610,17 +676,6 @@ namespace DiscordMusicBot {
             }).Start();
 
             DisposeAsync().GetAwaiter().GetResult();
-        }
-
-        //Dispose this Object (Async)
-        private async Task DisposeAsync() {
-            try {
-                await _client.StopAsync();
-                await _client.LogoutAsync();
-            } catch {
-                // could not disconnect
-            }
-            _client?.Dispose();
         }
     }
 }
