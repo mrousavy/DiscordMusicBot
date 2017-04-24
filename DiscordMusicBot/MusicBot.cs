@@ -1,16 +1,14 @@
-﻿using System;
+﻿using Discord;
+using Discord.Audio;
+using Discord.Rest;
+using Discord.WebSocket;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Discord;
-using Discord.Audio;
-using Discord.Commands;
-using Discord.Rest;
-using Discord.WebSocket;
 
 namespace DiscordMusicBot {
     internal class MusicBot : IDisposable {
@@ -20,6 +18,20 @@ namespace DiscordMusicBot {
         private SocketGuild _server;
         private List<string> _permittedUsers;
         private TaskCompletionSource<bool> _tcs;
+        private CancellationTokenSource _disposeToken;
+        private Queue<Tuple<string, string>> _queue;
+        private IAudioClient _audio;
+        private const string ImABot = " *I'm a Bot, beep boop blop*";
+        private readonly string[] _commands = { "!help", "!queue", "!add", "!addPlaylist", "!pause", "!play", "!clear", "!come", "!update", "!skip" };
+
+        private bool Pause {
+            get => _internalPause;
+            set {
+                new Thread(() => _tcs.TrySetResult(value)).Start();
+                _internalPause = value;
+            }
+        }
+        private bool _internalPause;
         private bool Skip {
             get {
                 bool ret = _internalSkip;
@@ -30,21 +42,7 @@ namespace DiscordMusicBot {
         }
         private bool _internalSkip;
 
-        //Song Queue, Path to files
-        private Queue<Tuple<string, string>> _queue;
-
-        private IAudioClient _audio;
-
-        private bool Pause {
-            get => _internalPause;
-            set {
-                new Thread(() => _tcs.TrySetResult(value)).Start();
-                _internalPause = value;
-            }
-        }
-        private bool _internalPause;
-        private const string ImABot = " *I'm a Bot, beep boop blop*";
-        private readonly string[] _commands = { "!help", "!queue", "!add", "!addPlaylist", "!pause", "!play", "!clear", "!come", "!update", "!skip" };
+        public bool IsDisposed;
 
 
         public MusicBot() { Initialize(); }
@@ -55,6 +53,7 @@ namespace DiscordMusicBot {
             ReadConfig();
             _queue = new Queue<Tuple<string, string>>();
             _tcs = new TaskCompletionSource<bool>();
+            _disposeToken = new CancellationTokenSource();
 
             //Init & Connect Client
             _client = new DiscordSocketClient(new DiscordSocketConfig {
@@ -422,10 +421,10 @@ namespace DiscordMusicBot {
                     int errors = 0;
                     byte[] buffer = new byte[bufferSize];
 
-                    while (bytesSent < output.Length && !Skip && errors < 10) {
+                    while (bytesSent < output.Length && !Skip && errors < 10 && !_disposeToken.IsCancellationRequested) {
                         try {
-                            await output.ReadAsync(buffer, bytesSent, bufferSize);
-                            await discord.WriteAsync(buffer, bytesSent, bufferSize);
+                            await output.ReadAsync(buffer, bytesSent, bufferSize, _disposeToken.Token);
+                            await discord.WriteAsync(buffer, bytesSent, bufferSize, _disposeToken.Token);
 
                             if (Pause) {
                                 bool pauseAgain;
@@ -494,18 +493,22 @@ namespace DiscordMusicBot {
 
         //Refresh Status of DiscordClient
         private async void Status() {
-            while (true) {
-                ConnectionState state = _client.ConnectionState;
-                Console.Title = $"Music Bot ({state})";
-                if (state == ConnectionState.Disconnected) {
-                    await Task.Delay(5000);
-                    // if still not connected, try joining
+            try {
+                while (!_disposeToken.IsCancellationRequested) {
+                    ConnectionState state = _client.ConnectionState;
+                    Console.Title = $"Music Bot ({state})";
                     if (state == ConnectionState.Disconnected) {
-                        await Connect();
+                        await Task.Delay(5000, _disposeToken.Token);
+                        // if still not connected, try joining
+                        if (state == ConnectionState.Disconnected) {
+                            await Connect();
+                        }
                     }
-                }
 
-                await Task.Delay(5000);
+                    await Task.Delay(5000, _disposeToken.Token);
+                }
+            } catch (TaskCanceledException) {
+                // _disposeToken Cancelled called
             }
         }
 
@@ -565,7 +568,8 @@ namespace DiscordMusicBot {
 
         //Dispose this Object
         public void Dispose() {
-            _client.Log -= Log;
+            IsDisposed = true;
+            _disposeToken.Cancel();
 
             Print("Shutting down...", ConsoleColor.Red);
 
@@ -590,9 +594,8 @@ namespace DiscordMusicBot {
                 await _client.LogoutAsync();
             } catch {
                 // could not disconnect
-            } finally {
-                _client?.Dispose();
             }
+            _client?.Dispose();
         }
     }
 }

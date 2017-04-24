@@ -32,6 +32,9 @@ namespace DiscordMusicBot {
         }
 
         public bool Equals(Config compare) {
+            if (compare == null)
+                return false;
+
             return
                 ClientId == compare.ClientId &&
                 ClientSecret == compare.ClientSecret &&
@@ -40,6 +43,10 @@ namespace DiscordMusicBot {
                 ServerName == compare.ServerName &&
                 TextChannelName == compare.TextChannelName &&
                 VoiceChannelName == compare.VoiceChannelName;
+        }
+
+        public override bool Equals(object obj) {
+            return Equals(obj as Config);
         }
 
         public override int GetHashCode() {
