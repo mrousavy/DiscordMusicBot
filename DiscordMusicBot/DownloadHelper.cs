@@ -1,19 +1,22 @@
 ﻿//using MediaToolkit;
 //using MediaToolkit.Model;
 using System;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 //using VideoLibrary;
 
 namespace DiscordMusicBot {
     internal class DownloadHelper {
-        private static readonly string DownloadPath = Path.GetTempPath();
+        private static readonly string DownloadPath = Path.Combine(Directory.GetCurrentDirectory(), "Temp") /*Path.GetTempPath() ??*/ ;
 
-
-        public static async Task<Tuple<string, string>> Download(string url) {
+        /// <summary>
+        /// Download Song or Video
+        /// </summary>
+        /// <param name="url">The URL to the Song or Video</param>
+        /// <returns>The File Location to the downloaded Song or Video</returns>
+        public static async Task<string> Download(string url) {
             if (url.ToLower().Contains("youtube.com")) {
                 return await DownloadFromYouTube(url);
             } else {
@@ -21,38 +24,171 @@ namespace DiscordMusicBot {
             }
         }
 
-        //Download the Video from YouTube url and extract it
-        private static async Task<Tuple<string, string>> DownloadFromYouTube(string url) {
-            //Download Video
-            //YouTube youtube = YouTube.Default;
-            //YouTubeVideo video = (await youtube.GetAllVideosAsync(url)).OrderByDescending(vid => vid.AudioBitrate).First();
+        /// <summary>
+        /// Download Playlist
+        /// </summary>
+        /// <param name="url">The URL to the Playlist</param>
+        /// <returns>The File Location to the downloaded Song</returns>
+        public static async Task<string> DownloadPlaylist(string url) {
+            if (url.ToLower().Contains("youtube.com")) {
+                return await DownloadPlaylistFromYouTube(url);
+            } else {
+                throw new Exception("Video URL not supported!");
+            }
+        }
 
-            //MusicBot.Print($"Downloading \"{video.Title}\" from YouTube...", ConsoleColor.Cyan);
+        /// <summary>
+        /// Gets Title of Video or Song
+        /// </summary>
+        /// <param name="url">URL to Video or Song</param>
+        /// <returns>The Title of the Video or Song</returns>
+        public static async Task<Tuple<string, string>> GetInfo(string url) {
+            if (url.ToLower().Contains("youtube.com")) {
+                return await GetInfoFromYouTube(url);
+            } else {
+                throw new Exception("Video URL not supported!");
+            }
+        }
 
-            //string file;
-            //int count = 0;
-            //do {
-            //    file = Path.Combine(DownloadPath, "tempvideo" + ++count + video.FileExtension);
-            //} while (File.Exists(file));
 
-            //File.WriteAllBytes(file, video.GetBytes());
+        /// <summary>
+        /// Get Video Title from YouTube URL
+        /// </summary>
+        /// <param name="url">URL to the YouTube Video</param>
+        /// <returns>The YouTube Video Title</returns>
+        private static async Task<Tuple<string, string>> GetInfoFromYouTube(string url) {
+            TaskCompletionSource<Tuple<string, string>> tcs = new TaskCompletionSource<Tuple<string, string>>();
 
-            ////Convert vid to mp3
-            //MediaFile inputFile = new MediaFile { Filename = file };
-            //MediaFile outputFile = new MediaFile { Filename = $"{file}.mp3" };
+            new Thread(() => {
+                string title;
+                string duration;
 
-            //using (Engine engine = new Engine()) {
-            //    engine.GetMetadata(inputFile);
-            //    engine.Convert(inputFile, outputFile);
-            //}
+                //youtube-dl.exe
+                Process youtubedl;
 
-            //Console.WriteLine("Done!");
+                //Get Video Title
+                ProcessStartInfo youtubedlGetTitle = new ProcessStartInfo() {
+                    FileName = "youtube-dl",
+                    Arguments = $"-e --get-duration -s {url}",
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    /*UseShellExecute = false*/     //Linux?
+                };
+                youtubedl = Process.Start(youtubedlGetTitle);
+                youtubedl.WaitForExit();
+                //Read Title
+                string[] lines = youtubedl.StandardOutput.ReadToEnd().Split('\n');
+                title = lines[0];
+                duration = lines[1];
 
-            //File.Delete(file);
+                tcs.SetResult(new Tuple<string, string>(title, duration));
+            }).Start();
 
-            //return new Tuple<string, string>($"{file}.mp3", video.Title);
+            Tuple<string, string> result = await tcs.Task;
+            if (result == null)
+                throw new Exception("youtube-dl.exe failed to receive title!");
 
-            return new Tuple<string, string>("Test.mp3", "Test");
+            return result;
+        }
+
+        /// <summary>
+        /// Download the Video from YouTube url and extract it
+        /// </summary>
+        /// <param name="url">URL to the YouTube Video</param>
+        /// <returns>The File Path to the downloaded mp3</returns>
+        private static async Task<string> DownloadFromYouTube(string url) {
+            TaskCompletionSource<string> tcs = new TaskCompletionSource<string>();
+
+            new Thread(() => {
+                string file;
+                int count = 0;
+                do {
+                    file = Path.Combine(DownloadPath, "tempvideo" + ++count + ".mp3");
+                } while (File.Exists(file));
+
+                //youtube-dl.exe
+                Process youtubedl;
+
+                //Download Video
+                ProcessStartInfo youtubedlDownload = new ProcessStartInfo() {
+                    FileName = "youtube-dl",
+                    Arguments = $"-f m4a -o \"{file}\" {url}",
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    /*UseShellExecute = false*/     //Linux?
+                };
+                youtubedl = Process.Start(youtubedlDownload);
+                //Wait until download is finished
+                youtubedl.WaitForExit();
+
+                if (File.Exists(file)) {
+                    //Return MP3 Path & Video Title
+                    tcs.SetResult(file);
+                } else {
+                    //Error downloading
+                    tcs.SetResult(null);
+                    MusicBot.Print($"Could not download Song, youtube-dl responded with: {youtubedl.StandardOutput.ReadToEnd()}", ConsoleColor.Red);
+                }
+            }).Start();
+
+            string result = await tcs.Task;
+            if (result == null)
+                throw new Exception("youtube-dl.exe failed to download!");
+
+            //Remove \n at end of Line
+            result = result.Replace("\n", "").Replace(Environment.NewLine, "");
+
+            return result;
+        }
+
+        /// <summary>
+        /// Download the whole Playlist from YouTube url and extract it
+        /// </summary>
+        /// <param name="url">URL to the YouTube Playlist</param>
+        /// <returns>The File Path to the downloaded mp3</returns>
+        private static async Task<string> DownloadPlaylistFromYouTube(string url) {
+            TaskCompletionSource<string> tcs = new TaskCompletionSource<string>();
+
+            new Thread(() => {
+                string file;
+                int count = 0;
+                do {
+                    file = Path.Combine(DownloadPath, "tempvideo" + ++count + ".mp3");
+                } while (File.Exists(file));
+
+                //youtube-dl.exe
+                Process youtubedl;
+
+                //Download Video
+                ProcessStartInfo youtubedlDownload = new ProcessStartInfo() {
+                    FileName = "youtube-dl",
+                    Arguments = $"--extract-audio --audio-format mp3 -o \"{file}\" {url}",
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    /*UseShellExecute = false*/     //Linux?
+                };
+                youtubedl = Process.Start(youtubedlDownload);
+                //Wait until download is finished
+                youtubedl.WaitForExit();
+
+                if (File.Exists(file)) {
+                    //Return MP3 Path & Video Title
+                    tcs.SetResult(file);
+                } else {
+                    //Error downloading
+                    tcs.SetResult(null);
+                    MusicBot.Print($"Could not download Song, youtube-dl responded with: {youtubedl.StandardOutput.ReadToEnd()}", ConsoleColor.Red);
+                }
+            }).Start();
+
+            string result = await tcs.Task;
+            if (result == null)
+                throw new Exception("youtube-dl.exe failed to download!");
+
+            //Remove \n at end of Line
+            result = result.Replace("\n", "").Replace(Environment.NewLine, "");
+
+            return result;
         }
     }
 }

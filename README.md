@@ -7,6 +7,26 @@ A Discord Bot for playing YouTube music.
 
 ![neat GIF](https://laughingsquid.com/wp-content/uploads/2015/06/floating-record-1.gif)
 
+# Installing
+#### Windows
+* [Install .NET Core](https://www.microsoft.com/net/download/core)
+* [Install FFmpeg](http://ffmpeg.zeranoe.com/builds/)
+* Install [youtube-dl](https://rg3.github.io/youtube-dl/download.html) ([Direct Link 2017.04.17](https://yt-dl.org/downloads/2017.04.17/youtube-dl.exe))
+* Optionally: Install [Sodium](https://download.libsodium.org/doc/installation/) and/or [Opus](http://opus-codec.org/downloads/) and place them into DiscordMusicBot folder
+
+#### Linux
+
+* [Install .NET Core](https://www.microsoft.com/net/download/linux)
+* [Install FFmpeg](https://ffmpeg.org/download.html#build-linux)
+* Install **youtube-dl**
+    ```Bash
+    sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
+
+    sudo chmod a+rx /usr/local/bin/youtube-dl
+    ```
+* Optionally: Install [Sodium](https://download.libsodium.org/doc/installation/) and/or [Opus](http://opus-codec.org/downloads/) and place them into DiscordMusicBot folder
+
+
 # Commands
 
 `!add [url]`                            ...     Adds a single Song to Music-queue
