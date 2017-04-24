@@ -202,7 +202,7 @@ namespace DiscordMusicBot {
                 } else if (msg.StartsWith("!queue")) {
                     Print("User requested: Queue", ConsoleColor.Magenta);
                     //Print Song Queue
-                    await SendQueue(dm);
+                    await SendQueue(_textChannel);
                     return;
                 }
 
@@ -258,7 +258,7 @@ namespace DiscordMusicBot {
                                             ImABot);
                                     }
                                 } else {
-                                    await dm.SendMessageAsync(
+                                    await _textChannel.SendMessageAsync(
                                         $"Sorry <@{socketMsg.Author.Id}>, but that was not a valid URL!" + ImABot);
                                 }
                             }
@@ -301,7 +301,7 @@ namespace DiscordMusicBot {
                                             ImABot);
                                     }
                                 } else {
-                                    await dm.SendMessageAsync(
+                                    await _textChannel.SendMessageAsync(
                                         $"Sorry <@{socketMsg.Author.Id}>, but that was not a valid URL!" + ImABot);
                                 }
                             }
@@ -316,7 +316,7 @@ namespace DiscordMusicBot {
                         //Pause Song Playback
                         Pause = true;
                         Print("Playback paused!", ConsoleColor.Magenta);
-                        await dm.SendMessageAsync("Playback paused!" + ImABot);
+                        await _textChannel.SendMessageAsync($"<@{socketMsg.Author}> paused playback!" + ImABot);
                         break;
 
                     #endregion
@@ -327,7 +327,7 @@ namespace DiscordMusicBot {
                         //Continue Song Playback
                         Pause = false;
                         Print("Playback continued!", ConsoleColor.Magenta);
-                        await dm.SendMessageAsync("Playback resumed!" + ImABot);
+                        await _textChannel.SendMessageAsync($"<@{socketMsg.Author}> resumed playback!" + ImABot);
                         break;
 
                     #endregion
@@ -352,7 +352,7 @@ namespace DiscordMusicBot {
                         _voiceChannel = (socketMsg.Author as IGuildUser)?.VoiceChannel;
                         if (_voiceChannel == null) {
                             Print("Error joining Voice Channel!", ConsoleColor.Red);
-                            await dm.SendMessageAsync("I can't connect to your Voice Channel!" + ImABot);
+                            await socketMsg.Channel.SendMessageAsync($"I can't connect to your Voice Channel <@{socketMsg.Author}>!" + ImABot);
                         } else {
                             Print($"Joined Voice Channel \"{_voiceChannel.Name}\"", ConsoleColor.Magenta);
                             _audio = await _voiceChannel.ConnectAsync();
@@ -375,11 +375,11 @@ namespace DiscordMusicBot {
                     #region !skip
 
                     case "!skip":
+                        Print("Song Skipped!", ConsoleColor.Magenta);
+                        await _textChannel.SendMessageAsync($"<@{socketMsg.Author}> skipped **{_queue.Peek().Item2}**!");
                         //Skip current Song
                         Skip = true;
                         Pause = false;
-                        Print("Song Skipped!", ConsoleColor.Magenta);
-                        await dm.SendMessageAsync("Song skipped!");
                         break;
 
                     #endregion
@@ -552,12 +552,13 @@ namespace DiscordMusicBot {
         #endregion
 
         #region Audio
+        //Audio: PCM | 48000hz | mp3
 
         //Get ffmpeg Audio Procecss
         private static Process GetFfmpeg(string path) {
             ProcessStartInfo ffmpeg = new ProcessStartInfo {
                 FileName = "ffmpeg",
-                Arguments = $"-i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
+                Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             };
@@ -570,6 +571,8 @@ namespace DiscordMusicBot {
             Process ffmpeg = GetFfmpeg(path);
             using (Stream output = ffmpeg.StandardOutput.BaseStream) {
                 using (AudioOutStream discord = _audio.CreatePCMStream(AudioApplication.Mixed, 1920)) {
+
+                    //DOES NOT WORK
                     //Adjust?
                     int bufferSize = 1024;
 
@@ -584,8 +587,7 @@ namespace DiscordMusicBot {
                         ) {
                         try {
                             int read = await output.ReadAsync(buffer, 0, bufferSize, _disposeToken.Token);
-                            await discord.WriteAsync(buffer, bytesSent, read, _disposeToken.Token);
-                            //await discord.FlushAsync();
+                            await discord.WriteAsync(buffer, 0, read, _disposeToken.Token);
 
                             if (Pause) {
                                 bool pauseAgain;
@@ -602,6 +604,8 @@ namespace DiscordMusicBot {
                             // could not send
                         }
                     }
+
+                    await discord.FlushAsync();
                 }
             }
 
@@ -644,7 +648,7 @@ namespace DiscordMusicBot {
                                 // ignored
                             } finally {
                                 //Finally remove song from playlist
-                                //_queue.Dequeue();
+                                _queue.Dequeue();
                             }
                             next = true;
                         }

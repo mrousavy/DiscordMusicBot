@@ -121,7 +121,6 @@ namespace DiscordMusicBot {
                 //Wait until download is finished
                 youtubedl.WaitForExit();
 
-
                 file = file.Replace(".%(ext)s", ".mp3");
 
                 if (File.Exists(file)) {

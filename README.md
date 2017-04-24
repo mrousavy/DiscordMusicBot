@@ -17,7 +17,7 @@ A Discord Bot for playing YouTube music.
 * [Modify **config.json**](#configure)
 * [Install .NET Core](https://www.microsoft.com/net/download/linux)
 * [Install FFmpeg](https://ffmpeg.org/download.html#build-linux)
-* Install **youtube-dl**
+* Install [youtube-dl](https://rg3.github.io/youtube-dl/download.html):
     ```shell
     sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
 
