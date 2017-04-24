@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <ApplicationIcon>disc.ico</ApplicationIcon>
+    <Version>1.0.1</Version>
+    <Authors>mrousavy</Authors>
+    <Company>mrousavy</Company>
+    <Description>A Music Bot for Discord for YouTube Videos</Description>
+    <Copyright>mrousavy</Copyright>
+    <PackageProjectUrl>http://github.com/mrousavy/DiscordMusicBot</PackageProjectUrl>
+    <RepositoryUrl>http://github.com/mrousavy/DiscordMusicBot</RepositoryUrl>
+    <RepositoryType>Open Source GitHub Repository</RepositoryType>
+    <PackageTags>Discord Music Bot YouTube</PackageTags>
+    <AssemblyVersion>1.0.0.1</AssemblyVersion>
+    <FileVersion>1.0.0.1</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Discord.Net" Version="1.0.0-rc" />
+    <PackageReference Include="Discord.Net.Core" Version="1.0.0-rc" />
+    <PackageReference Include="Discord.Net.Rest" Version="1.0.0-rc" />
+    <PackageReference Include="Discord.Net.WebSocket" Version="1.0.0-rc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.2\System.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="libsodium-18.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="lib\32\libsodium-18.dll">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="lib\32\opus.dll">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="opus.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
