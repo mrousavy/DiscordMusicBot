@@ -1,21 +1,20 @@
 # <img src="https://image.freepik.com/free-icon/music-disc-with-white-details_318-43070.jpg" width="42"> DiscordMusicBot
 A Discord Bot for playing YouTube music.
 
-[Click here to add this MusicBot to your Server](https://discordapp.com/oauth2/authorize?client_id=304226292545486849&scope=bot)
-
-[Click here to download Music Bot](https://github.com/mrousavy/DiscordMusicBot/raw/master/Download/DiscordMusicBot.zip)
-
-![neat GIF](https://laughingsquid.com/wp-content/uploads/2015/06/floating-record-1.gif)
-
 # Installing
-#### Windows
+### Windows
+* [Add this Music Bot to your Discord Server](https://discordapp.com/oauth2/authorize?client_id=304226292545486849&scope=bot)
+* [Download this Music Bot](https://github.com/mrousavy/DiscordMusicBot/raw/master/Download/DiscordMusicBot.zip) and extract into **DiscordMusicBot/**
+* [Modify **config.json**](#configure)
 * [Install .NET Core](https://www.microsoft.com/net/download/core)
 * [Install FFmpeg](http://ffmpeg.zeranoe.com/builds/)
 * Install [youtube-dl](https://rg3.github.io/youtube-dl/download.html) ([Direct Link 2017.04.17](https://yt-dl.org/downloads/2017.04.17/youtube-dl.exe))
-* Optionally: Install [Sodium](https://download.libsodium.org/doc/installation/) and/or [Opus](http://opus-codec.org/downloads/) and place them into DiscordMusicBot folder
+* Optionally: Install [Sodium](https://discord.foxbot.me/binaries/libsodium/) and/or [Opus](https://discord.foxbot.me/binaries/opus/) and place them into **DiscordMusicBot/** folder
 
-#### Linux
-
+### Linux
+* [Add this Music Bot to your Discord Server](https://discordapp.com/oauth2/authorize?client_id=304226292545486849&scope=bot)
+* [Download this Music Bot](https://github.com/mrousavy/DiscordMusicBot/raw/master/Download/DiscordMusicBot.zip) and extract into **DiscordMusicBot/**
+* [Modify **config.json**](#configure)
 * [Install .NET Core](https://www.microsoft.com/net/download/linux)
 * [Install FFmpeg](https://ffmpeg.org/download.html#build-linux)
 * Install **youtube-dl**
@@ -24,7 +23,23 @@ A Discord Bot for playing YouTube music.
 
     sudo chmod a+rx /usr/local/bin/youtube-dl
     ```
-* Optionally: Install [Sodium](https://download.libsodium.org/doc/installation/) and/or [Opus](http://opus-codec.org/downloads/) and place them into DiscordMusicBot folder
+* Optionally: Install [Sodium](https://download.libsodium.org/doc/installation/) and/or [Opus](http://opus-codec.org/downloads/) and place them into **DiscordMusicBot/** folder
+
+# Configure
+* Create your app [here](https://discordapp.com/developers/applications/me)
+* Create **DiscordMusicBot/config.json** file
+* Paste this into **config.json** and set your values
+    ```
+    {
+    "ClientId": "[app Client ID]",
+    "ClientSecret": "[app secret]",
+    "BotName": "[app name]",
+    "Token": "[app token]",
+    "ServerName": "My Discord Server",
+    "VoiceChannelName": "Lounge 1",
+    "TextChannelName": "general"
+    }
+    ```
 
 
 # Commands
