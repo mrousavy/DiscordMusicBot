@@ -573,7 +573,7 @@ namespace DiscordMusicBot {
             ProcessStartInfo ffmpeg = new ProcessStartInfo {
                 FileName = "ffmpeg",
                 Arguments = $"-xerror -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
-                UseShellExecute = false,
+                 //UseShellExecute = false,    //TODO: true or false?
                 RedirectStandardOutput = true
             };
             return Process.Start(ffmpeg);
@@ -584,7 +584,7 @@ namespace DiscordMusicBot {
             ProcessStartInfo ffplay = new ProcessStartInfo {
                 FileName = "ffplay",
                 Arguments = $"-i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1 -autoexit",
-                UseShellExecute = false,
+                //UseShellExecute = false,    //TODO: true or false?
                 RedirectStandardOutput = true
             };
 
