@@ -34,6 +34,9 @@
     <None Update="libsodium-18.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="libsodium.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="lib\32\libsodium-18.dll">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
