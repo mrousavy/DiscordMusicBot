@@ -21,10 +21,9 @@ A **Discord Bot** for playing **YouTube** music.
     * [Download **FFmpeg**](http://ffmpeg.zeranoe.com/builds/) and place into `DiscordMusicBot/` folder
     * [Download **youtube-dl**](https://rg3.github.io/youtube-dl/download.html) and place into `DiscordMusicBot/` folder
     * Download [**Sodium**](https://discord.foxbot.me/binaries/libsodium/) and/or [**Opus**](https://discord.foxbot.me/binaries/opus/) and place them into `DiscordMusicBot/` folder
-6. **Run**
-```shell
-dotnet DiscordMusicBot.dll
-```
+6. **Run** 
+    * Open DiscordMusicBot.bat
+    * `..\DiscordMusicBot\> dotnet DiscordMusicBot.dll`
 
 ### Linux
 1. [**Add** this Music Bot to your Discord Server](https://discordapp.com/oauth2/authorize?client_id=304226292545486849&scope=bot)
