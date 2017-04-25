@@ -60,7 +60,7 @@ namespace DiscordMusicBot {
 
             //Init & Connect Client
             _client = new DiscordSocketClient(new DiscordSocketConfig {
-                LogLevel = LogSeverity.Verbose
+                LogLevel = LogSeverity.Info
             });
 
             //Logging
@@ -572,33 +572,54 @@ namespace DiscordMusicBot {
         private static Process GetFfmpeg(string path) {
             ProcessStartInfo ffmpeg = new ProcessStartInfo {
                 FileName = "ffmpeg",
-                Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
+                Arguments = $"-xerror -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
                 UseShellExecute = false,
-                RedirectStandardOutput = true,
+                RedirectStandardOutput = true
             };
             return Process.Start(ffmpeg);
         }
 
+        //Get ffplay Audio Procecss
+        private static Process GetFfplay(string path) {
+            ProcessStartInfo ffplay = new ProcessStartInfo {
+                FileName = "ffplay",
+                Arguments = $"-i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1 -autoexit",
+                UseShellExecute = false,
+                RedirectStandardOutput = true
+            };
+
+            return new Process { StartInfo = ffplay };
+        }
+
         //Send Audio with ffmpeg
         private async Task SendAudio(string path) {
-            // Create FFmpeg using the previous example
+            //FFmpeg.exe
             Process ffmpeg = GetFfmpeg(path);
+            //Read FFmpeg output
             using (Stream output = ffmpeg.StandardOutput.BaseStream) {
                 using (AudioOutStream discord = _audio.CreatePCMStream(AudioApplication.Mixed, 1920)) {
+
                     //Adjust?
                     int bufferSize = 1024;
-
                     int bytesSent = 0;
-                    int errors = 0;
+                    bool fail = false;
+                    bool exit = false;
                     byte[] buffer = new byte[bufferSize];
 
                     while (
-                        !Skip &&                                // If Skip is set to true, stop sending and set back to false (with getter)
-                        errors < 5 &&                           // After 5 unsuccessful sendings, stop sending
-                        !_disposeToken.IsCancellationRequested  // On Cancel/Dispose requested, stop sending
-                        ) {
+                        !Skip &&                                    // If Skip is set to true, stop sending and set back to false (with getter)
+                        !fail &&                                    // After a failed attempt, stop sending
+                        !_disposeToken.IsCancellationRequested &&   // On Cancel/Dispose requested, stop sending
+                        !exit                                       // Audio Playback has ended (No more data from FFmpeg.exe)
+                            ) {
                         try {
                             int read = await output.ReadAsync(buffer, 0, bufferSize, _disposeToken.Token);
+                            if (read == 0) {
+                                //No more data available
+                                exit = true;
+                                break;
+                            }
+
                             await discord.WriteAsync(buffer, 0, read, _disposeToken.Token);
 
                             if (Pause) {
@@ -611,17 +632,16 @@ namespace DiscordMusicBot {
                             }
 
                             bytesSent += read;
+                        } catch (TaskCanceledException) {
+                            exit = true;
                         } catch {
-                            errors++;
+                            fail = true;
                             // could not send
                         }
                     }
-
                     await discord.FlushAsync();
                 }
             }
-
-            ffmpeg.WaitForExit();
         }
 
         //Looped Music Play
@@ -641,7 +661,7 @@ namespace DiscordMusicBot {
                 try {
                     if (_queue.Count == 0) {
                         await _client.SetGameAsync("Nothing :/");
-                        Print("Now playing: Nothing", ConsoleColor.Magenta);
+                        Print("Playlist ended.", ConsoleColor.Magenta);
                     } else {
                         if (!pause) {
                             //Get Song
@@ -651,10 +671,8 @@ namespace DiscordMusicBot {
                             Print($"Now playing: {song.Item2} ({song.Item3})", ConsoleColor.Magenta);
                             await SendMessage($"Now playing: **{song.Item2}** ({song.Item3})");
 
+                            //Send audio (Long Async blocking, Read/Write stream)
                             await SendAudio(song.Item1);
-                            
-                            await _client.SetGameAsync("Nothing :/");
-                            Print("Now playing: Nothing", ConsoleColor.Magenta);
 
                             try {
                                 File.Delete(song.Item1);
