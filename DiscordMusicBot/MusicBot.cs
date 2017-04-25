@@ -642,7 +642,6 @@ namespace DiscordMusicBot {
                     if (_queue.Count == 0) {
                         await _client.SetGameAsync("Nothing :/");
                         Print("Now playing: Nothing", ConsoleColor.Magenta);
-                        await SendMessage("Now playing: **Nothing**");
                     } else {
                         if (!pause) {
                             //Get Song
@@ -653,6 +652,9 @@ namespace DiscordMusicBot {
                             await SendMessage($"Now playing: **{song.Item2}** ({song.Item3})");
 
                             await SendAudio(song.Item1);
+                            
+                            await _client.SetGameAsync("Nothing :/");
+                            Print("Now playing: Nothing", ConsoleColor.Magenta);
 
                             try {
                                 File.Delete(song.Item1);
