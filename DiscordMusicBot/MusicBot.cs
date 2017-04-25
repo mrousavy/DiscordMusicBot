@@ -23,7 +23,7 @@ namespace DiscordMusicBot {
         private readonly string[] _commands = { "!help", "!queue", "!add", "!addPlaylist", "!pause", "!play", "!clear", "!come", "!update", "!skip" };
 
         /// <summary>
-        /// Tuple<FilePath, Video Name, Duration, Requested by>
+        /// Tuple(FilePath, Video Name, Duration, Requested by)
         /// </summary>
         private Queue<Tuple<string, string, string, string>> _queue;
 
