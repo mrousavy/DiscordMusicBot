@@ -585,8 +585,6 @@ namespace DiscordMusicBot {
             Process ffmpeg = GetFfmpeg(path);
             using (Stream output = ffmpeg.StandardOutput.BaseStream) {
                 using (AudioOutStream discord = _audio.CreatePCMStream(AudioApplication.Mixed, 1920)) {
-
-                    //DOES NOT WORK
                     //Adjust?
                     int bufferSize = 1024;
 
