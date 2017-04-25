@@ -1,20 +1,10 @@
 # <img src="DiscordMusicBot/disc.png" width="42"> DiscordMusicBot
 A **Discord Bot** for playing **YouTube** music.
 
-# Build
-1. Get Source files
-    * Clone Repo: `git clone http://github.com/mrousavy/DiscordMusicBot`
-    * [Download ZIP](https://github.com/mrousavy/DiscordMusicBot/archive/master.zip)
-2. [Download and Install .NET Core SDK](https://www.microsoft.com/net/download/core)
-3. Open `DiscordMusicBot/` in any **Terminal**
-4. **Restore** NuGet Packages: `dotnet restore`
-5. **Build** Project: `dotnet build`
-6. **Publish**: `dotnet publish -c release -r win10-x64` [(Find your OS)](https://github.com/dotnet/docs/blob/master/docs/core/rid-catalog.md#windows-rids)
-
 # Installing
 ### Windows
 1. [**Add** this Music Bot to your Discord Server](https://discordapp.com/oauth2/authorize?client_id=304226292545486849&scope=bot)
-2. [**Build**](#Build) or [**Download**](https://github.com/mrousavy/DiscordMusicBot/releases/latest) this Music Bot and extract into `DiscordMusicBot/`
+2. [**Build yourself**](#Build) or [**Download**](https://github.com/mrousavy/DiscordMusicBot/releases/latest) this Music Bot and extract into `DiscordMusicBot/`
 3. [**Modify** `config.json`](#configure)
 4. [**Install** .NET Core](https://www.microsoft.com/net/download/core)
 5. **Optionally** *(Reinstall newer versions):*
@@ -27,7 +17,7 @@ A **Discord Bot** for playing **YouTube** music.
 
 ### Linux
 1. [**Add** this Music Bot to your Discord Server](https://discordapp.com/oauth2/authorize?client_id=304226292545486849&scope=bot)
-2. [**Build**](#Build) or [**Download**](https://github.com/mrousavy/DiscordMusicBot/releases/latest) this Music Bot and extract into `DiscordMusicBot/`
+2. [**Build yourself**](#Build) or [**Download**](https://github.com/mrousavy/DiscordMusicBot/releases/latest) this Music Bot and extract into `DiscordMusicBot/`
 3. [**Modify** `config.json`](#configure)
 4. [**Install** .NET Core](https://www.microsoft.com/net/download/linux)
 5. **Optionally** *(Reinstall newer versions):*
@@ -43,6 +33,16 @@ A **Discord Bot** for playing **YouTube** music.
 ```shell
 dotnet DiscordMusicBot.dll
 ```
+
+# Build
+1. Get Source files
+    * Clone Repo: `git clone http://github.com/mrousavy/DiscordMusicBot`
+    * [Download ZIP](https://github.com/mrousavy/DiscordMusicBot/archive/master.zip)
+2. [Download and Install .NET Core SDK](https://www.microsoft.com/net/download/core)
+3. Open `DiscordMusicBot/` in any **Terminal**
+4. **Restore** NuGet Packages: `dotnet restore`
+5. **Build** Project: `dotnet build`
+6. **Publish**: `dotnet publish -c release -r win10-x64` [(Find your OS)](https://github.com/dotnet/docs/blob/master/docs/core/rid-catalog.md#windows-rids)
 
 # Configure
 ### config.json
