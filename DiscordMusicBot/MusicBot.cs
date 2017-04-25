@@ -442,7 +442,7 @@ namespace DiscordMusicBot {
             EmbedBuilder builder = new EmbedBuilder() {
                 Author = new EmbedAuthorBuilder { Name = "Music Bot Song Queue" },
                 Footer = new EmbedFooterBuilder() { Text = "(I don't actually sing)" },
-                Color = new Color(00, 99, 33)
+                Color = Pause ? new Color(244, 67, 54) /*Red*/ : new Color(00, 99, 33) /*Green*/
             };
             //builder.ThumbnailUrl = "some cool url";
             builder.Url = "http://github.com/mrousavy/DiscordMusicBot";
