@@ -197,7 +197,9 @@ namespace DiscordMusicBot {
                 if (msg.StartsWith("!help")) {
                     Print("User requested: Help", ConsoleColor.Magenta);
                     //Print Available Commands
-                    await dm.SendMessageAsync(GetHelp());
+                    await dm.SendMessageAsync(
+                        $"Use these *Commands* by sending me a **private Message**, or writing in **#{Information.TextChannelName}**!" + ImABot,
+                        embed: GetHelp(socketMsg.Author.ToString()));
                     return;
                 } else if (msg.StartsWith("!queue")) {
                     Print("User requested: Queue", ConsoleColor.Magenta);
@@ -438,6 +440,7 @@ namespace DiscordMusicBot {
                 await _textChannel.SendMessageAsync(message);
         }
 
+        //Send Song queue in channel
         private async Task SendQueue(IMessageChannel channel) {
             EmbedBuilder builder = new EmbedBuilder() {
                 Author = new EmbedAuthorBuilder { Name = "Music Bot Song Queue" },
@@ -456,6 +459,33 @@ namespace DiscordMusicBot {
 
                 await channel.SendMessageAsync("", embed: builder.Build());
             }
+        }
+
+        //Return Bot Help
+        public Embed GetHelp(string user) {
+            EmbedBuilder builder = new EmbedBuilder() {
+                Title = "Music Bot Help",
+                Description = _permittedUsers.Contains(user) ?
+                                    "You are allowed to use **every** command." :
+                                    "You are only allowed to use `!help` and `!queue`",
+                Color = new Color(102, 153, 255)
+            };
+            //builder.ThumbnailUrl = "https://raw.githubusercontent.com/mrousavy/DiscordMusicBot/master/DiscordMusicBot/disc.png"; //Music Bot Icon
+            builder.Url = "http://github.com/mrousavy/DiscordMusicBot";
+
+            builder.AddField("`!help`", "Prints available Commands and usage");
+            builder.AddField("`!queue`", "Prints all queued Songs & their User");
+
+            builder.AddField("`!add [url]`", "Adds a single Song to Music-queue");
+            builder.AddField("`!addPlaylist [url]`", "Adds whole playlist to Music-queue");
+            builder.AddField("`!pause`", "Pause the queue and current Song");
+            builder.AddField("`!play`", "Resume the queue and current Song");
+            builder.AddField("`!clear`", "Clear queue and current Song");
+            builder.AddField("`!come`", "Let Bot join your Channel");
+            builder.AddField("`!update`", "Updates Permitted Clients from File");
+
+
+            return builder.Build();
         }
 
         //Dispose this Object (Async)
@@ -499,22 +529,6 @@ namespace DiscordMusicBot {
             Console.ForegroundColor = color;
             Console.WriteLine(message);
             Console.ResetColor();
-        }
-
-        //Return Bot Help
-        public string GetHelp() {
-            return
-                " **Available Commands:** \n" +
-                "    `!add [url]`                    ... *Adds a single Song to Music-queue*\n" +
-                "    `!addPlaylist [playlist - url]` ... *Adds whole playlist to Music - queue*\n" +
-                "    `!pause`                        ... *Pause the queue and current Song*\n" +
-                "    `!play`                         ... *Resume the queue and current Song*\n" +
-                "    `!queue`                        ... *Prints all queued Songs & their User*\n" +
-                "    `!clear`                        ... *Clear queue and current Song*\n" +
-                "    `!help`                         ... *Prints available Commands and usage*\n" +
-                "    `!come`                         ... *Let Bot join your Channel*\n" +
-                "    `!update`                       ... *Updates the Permitted Clients List from clients.txt*\n" +
-                "**Visit http://github.com/mrousavy/DiscordMusicBot for more Info!**";
         }
 
         //Print all Servers on Console
