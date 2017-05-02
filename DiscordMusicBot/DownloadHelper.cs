@@ -78,8 +78,18 @@ namespace DiscordMusicBot {
                 youtubedl.WaitForExit();
                 //Read Title
                 string[] lines = youtubedl.StandardOutput.ReadToEnd().Split('\n');
-                title = lines[0];
-                duration = lines[1];
+                
+                if (lines.Length >= 2)
+                {
+                    title = lines[0];
+                    duration = lines[1];
+                } else
+                {
+                    title = "No Title found";
+                    duration = "0";
+                }
+                
+                
 
                 tcs.SetResult(new Tuple<string, string>(title, duration));
             }).Start();
@@ -120,7 +130,7 @@ namespace DiscordMusicBot {
                 youtubedl = Process.Start(youtubedlDownload);
                 //Wait until download is finished
                 youtubedl.WaitForExit();
-
+                Thread.Sleep(1000);
                 if (File.Exists(file)) {
                     //Return MP3 Path & Video Title
                     tcs.SetResult(file);
