@@ -31,7 +31,7 @@ A **Discord Bot** for playing **YouTube** music.
      * Download [**Sodium**](https://download.libsodium.org/doc/installation/) and/or [**Opus**](http://opus-codec.org/downloads/) and place them into `DiscordMusicBot/` folder
 6. **Run**
 ```shell
-dotnet DiscordMusicBot.dll
+$ dotnet DiscordMusicBot.dll
 ```
 
 # Build
